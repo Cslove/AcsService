@@ -69,73 +69,79 @@ src/
 #### 2.1 Agent 领域
 
 **核心概念：**
+
 - **主 Agent**：用户的贴身助理，负责理解用户品味、协调子 Agent、生成内容
 - **子 Agent**：专门处理特定任务的 Agent（如内容生成 Agent、信息收集 Agent）
 - **Agent 生命周期**：创建 → 激活 → 执行任务 → 暂停 → 销毁
 
 **关键设计：**
+
 ```typescript
 // Agent 抽象基类
 abstract class BaseAgent {
-  id: string
-  type: AgentType
-  state: AgentState
-  capabilities: Skill[]
-  
-  abstract execute(task: Task): Promise<Result>
-  abstract delegate(subTask: SubTask): Promise<SubAgent>
+  id: string;
+  type: AgentType;
+  state: AgentState;
+  capabilities: Skill[];
+
+  abstract execute(task: Task): Promise<Result>;
+  abstract delegate(subTask: SubTask): Promise<SubAgent>;
 }
 
 // 主 Agent 实现
 class MainAgent extends BaseAgent {
-  preference: UserPreference
-  conversationHistory: Message[]
-  
+  preference: UserPreference;
+  conversationHistory: Message[];
+
   // 理解用户品味
-  async analyzePreference(): Promise<void>
-  
+  async analyzePreference(): Promise<void>;
+
   // 协调子 Agent
-  async coordinate(subAgents: SubAgent[]): Promise<void>
+  async coordinate(subAgents: SubAgent[]): Promise<void>;
 }
 ```
 
 #### 2.2 Session 和 Message 管理
 
 **设计原则：**
+
 - Session 作为对话上下文的容器
 - Message 支持多种类型（文本、工具调用、工具结果等）
 - 采用流式处理支持 SSE 实时推送
 
 **数据结构：**
+
 ```typescript
 interface Session {
-  id: string
-  userId: string
-  messages: Message[]
-  metadata: SessionMetadata
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  userId: string;
+  messages: Message[];
+  metadata: SessionMetadata;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface Message {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: MessageContent[]
-  parts: Part[]  // 支持多部分内容
-  timestamp: Date
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: MessageContent[];
+  parts: Part[]; // 支持多部分内容
+  timestamp: Date;
 }
 
-type MessageContent = TextContent | ToolCallContent | ToolResultContent
+type MessageContent = TextContent | ToolCallContent | ToolResultContent;
 ```
 
 #### 2.3 Task 管理
 
 **任务类型：**
+
 - **即时任务**：用户直接发起的任务（如"生成一篇关于 AI 的文章"）
 - **定时任务**：系统自动发起的任务（如早中晚推送）
 - **子任务**：由 Agent 分解出的子任务
 
 **任务状态机：**
+
 ```
 Pending → Running → Completed
          ↘ Failed
@@ -145,20 +151,22 @@ Pending → Running → Completed
 #### 2.4 Skill 系统
 
 **设计原则：**
+
 - Skill 作为可插拔的功能单元
 - 支持 Tool Call 格式与大模型集成
 - 动态加载和卸载
 
 **Skill 接口：**
+
 ```typescript
 interface Skill {
-  id: string
-  name: string
-  description: string
-  parameters: SkillParameter[]
-  
-  execute(params: Record<string, any>): Promise<SkillResult>
-  toToolCall(): ToolCallDefinition
+  id: string;
+  name: string;
+  description: string;
+  parameters: SkillParameter[];
+
+  execute(params: Record<string, any>): Promise<SkillResult>;
+  toToolCall(): ToolCallDefinition;
 }
 ```
 
@@ -167,17 +175,19 @@ interface Skill {
 #### 3.1 多模型适配器
 
 **支持的模型：**
+
 - DeepSeek
 - Kimi（Moonshot）
 - 通义千问
 - GLM（智谱）
 
 **适配器设计：**
+
 ```typescript
 interface LLMProvider {
-  name: string
-  chat(params: ChatParams): AsyncIterable<ChatChunk>
-  streamChat(params: ChatParams): AsyncIterable<ChatChunk>
+  name: string;
+  chat(params: ChatParams): AsyncIterable<ChatChunk>;
+  streamChat(params: ChatParams): AsyncIterable<ChatChunk>;
 }
 
 class OpenAICompatibleProvider implements LLMProvider {
@@ -194,6 +204,7 @@ class GLMProvider extends OpenAICompatibleProvider {}
 #### 3.2 Tool Call 循环调用
 
 **核心流程：**
+
 1. 用户输入 → 主 Agent 处理
 2. Agent 调用大模型，模型返回需要调用工具
 3. Agent 执行工具调用
@@ -201,6 +212,7 @@ class GLMProvider extends OpenAICompatibleProvider {}
 5. 循环直到任务完成
 
 **实现要点：**
+
 - 支持并行工具调用
 - 超时和重试机制
 - 错误处理和降级策略
@@ -210,11 +222,13 @@ class GLMProvider extends OpenAICompatibleProvider {}
 #### 4.1 GitHub 作为数据存储
 
 **存储策略：**
+
 - 使用 GitHub Repository 作为主存储
 - 数据以 JSON 文件形式存储
 - 支持版本控制和历史追溯
 
 **目录结构：**
+
 ```
 data/
 ├── users/
@@ -236,11 +250,13 @@ data/
 #### 4.2 多层缓存策略
 
 **缓存层次：**
+
 1. **内存缓存**（LRU）：热点数据，快速访问
 2. **本地文件缓存**：持久化缓存，减少 GitHub API 调用
 3. **GitHub 存储**：主存储，保证数据一致性
 
 **缓存策略：**
+
 - 写穿透：写入时同步更新所有层
 - 读穿透：读取时逐层查找，找到后回填
 - 定期刷新：后台任务定期同步最新数据
@@ -250,6 +266,7 @@ data/
 #### 5.1 事件总线设计
 
 **事件类型：**
+
 - 模型回复事件（流式）
 - 会话更新事件
 - 消息新增事件
@@ -258,18 +275,20 @@ data/
 - 推送事件
 
 **事件格式：**
+
 ```typescript
 interface SSEEvent {
-  type: EventType
-  data: any
-  timestamp: number
-  eventId: string
+  type: EventType;
+  data: any;
+  timestamp: number;
+  eventId: string;
 }
 ```
 
 #### 5.2 SSE 连接管理
 
 **连接生命周期：**
+
 1. 客户端建立 SSE 连接
 2. 服务端验证身份，创建连接上下文
 3. 订阅相关事件（基于用户 ID）
@@ -277,6 +296,7 @@ interface SSEEvent {
 5. 连接断开时清理资源
 
 **性能优化：**
+
 - 心跳机制保持连接活跃
 - 连接池管理
 - 背压处理，避免消息积压
@@ -286,11 +306,13 @@ interface SSEEvent {
 #### 6.1 定时任务调度
 
 **推送时间：**
+
 - 早间推送（7:00-9:00）
 - 中午推送（12:00-14:00）
 - 晚间推送（18:00-21:00）
 
 **推送内容生成流程：**
+
 1. 触发定时任务
 2. 基于用户品味偏好收集热门话题
 3. 筛选用户感兴趣领域的话题
@@ -300,11 +322,13 @@ interface SSEEvent {
 #### 6.2 话题收集策略
 
 **数据来源：**
+
 - 热搜榜单（微博、知乎等）
 - 行业资讯
 - 用户关注领域动态
 
 **个性化过滤：**
+
 - 基于历史对话分析兴趣点
 - 基于用户偏好标签过滤
 - 基于时间衰减权重计算
@@ -314,12 +338,14 @@ interface SSEEvent {
 #### 7.1 多平台适配
 
 **支持的平台：**
+
 - 今日头条
 - 微信公众号
 - 微博
 - 小红书
 
 **平台特性适配：**
+
 - 字数限制
 - 格式要求
 - 风格偏好
@@ -427,6 +453,7 @@ interface SSEEvent {
 **具体步骤**：
 
 1. **安装核心依赖**
+
    ```bash
    pnpm add hono @hono/node-server
    pnpm add @ai-sdk/openai-compatible @ai-sdk/provider
@@ -438,9 +465,10 @@ interface SSEEvent {
    ```
 
 2. **安装开发依赖**
+
    ```bash
    pnpm add -D @types/node typescript tsx
-   pnpm add -D oxlint oxfmt  
+   pnpm add -D oxlint oxfmt
    pnpm add -D vitest @vitest/ui  # 测试框架
    ```
 
@@ -763,7 +791,7 @@ mkdir -p tests/{unit,integration,e2e}
    - 配置中间件
    - 配置错误处理
 
-2. **创建 `src/api/middleware/`
+2. \*\*创建 `src/api/middleware/`
    - 认证中间件
    - 日志中间件
    - 错误处理中间件
@@ -1032,4 +1060,3 @@ mkdir -p tests/{unit,integration,e2e}
 3. **资源优化**
    - 内存优化
    - 网络优化
-

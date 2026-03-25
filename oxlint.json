@@ -1,0 +1,39 @@
+{
+  "$schema": "https://oxlint.com/schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn",
+    "style": "warn",
+    "restriction": "warn"
+  },
+  "env": {
+    "browser": false,
+    "es2021": true,
+    "node": true
+  },
+  "ignore": ["node_modules", "dist", "build", "coverage", "*.config.js", "*.config.ts"],
+  "rules": {
+    "no-console": "off",
+    "no-debugger": "warn",
+    "no-unused-vars": "error",
+    "no-undef": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always"],
+    "curly": ["error", "all"],
+    "no-empty": "error",
+    "no-extra-semi": "error",
+    "no-irregular-whitespace": "error",
+    "no-unreachable": "error",
+    "valid-typeof": "error",
+    "no-duplicate-imports": "error",
+    "no-useless-return": "error",
+    "prefer-arrow-callback": "warn",
+    "prefer-template": "warn",
+    "no-nested-ternary": "warn",
+    "no-multiple-empty-lines": ["warn", { "max": 2 }],
+    "quotes": ["error", "single", { "avoidEscape": true }],
+    "semi": ["error", "always"]
+  }
+}

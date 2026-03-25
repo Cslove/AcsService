@@ -1,4 +1,4 @@
-import { Platform } from '@/shared/types/index.js';
+import { Platform } from "@/shared/types/index.js";
 
 // ============================================================================
 // 应用配置常量
@@ -6,7 +6,7 @@ import { Platform } from '@/shared/types/index.js';
 
 export const APP_CONFIG = {
   DEFAULT_PORT: 3000,
-  DEFAULT_NODE_ENV: 'development',
+  DEFAULT_NODE_ENV: "development",
 } as const;
 
 // ============================================================================
@@ -27,10 +27,10 @@ export const CACHE_CONFIG = {
 // ============================================================================
 
 export const GITHUB_CONFIG = {
-  DEFAULT_BRANCH: 'main',
-  DATA_DIR: 'data',
-  USERS_DIR: 'users',
-  SYSTEM_DIR: 'system',
+  DEFAULT_BRANCH: "main",
+  DATA_DIR: "data",
+  USERS_DIR: "users",
+  SYSTEM_DIR: "system",
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000, // 1 second
 } as const;
@@ -49,28 +49,28 @@ export const LLM_CONFIG = {
 } as const;
 
 export const MODEL_PROVIDERS = {
-  DEEPSEEK: 'deepseek',
-  KIMI: 'kimi',
-  QWEN: 'qwen',
-  GLM: 'glm',
+  DEEPSEEK: "deepseek",
+  KIMI: "kimi",
+  QWEN: "qwen",
+  GLM: "glm",
 } as const;
 
 export const MODEL_NAMES = {
   [MODEL_PROVIDERS.DEEPSEEK]: {
-    DEFAULT: 'deepseek-chat',
-    FAST: 'deepseek-coder',
+    DEFAULT: "deepseek-chat",
+    FAST: "deepseek-coder",
   },
   [MODEL_PROVIDERS.KIMI]: {
-    DEFAULT: 'moonshot-v1-8k',
-    FAST: 'moonshot-v1-32k',
+    DEFAULT: "moonshot-v1-8k",
+    FAST: "moonshot-v1-32k",
   },
   [MODEL_PROVIDERS.QWEN]: {
-    DEFAULT: 'qwen-turbo',
-    FAST: 'qwen-plus',
+    DEFAULT: "qwen-turbo",
+    FAST: "qwen-plus",
   },
   [MODEL_PROVIDERS.GLM]: {
-    DEFAULT: 'glm-4',
-    FAST: 'glm-3-turbo',
+    DEFAULT: "glm-4",
+    FAST: "glm-3-turbo",
   },
 } as const;
 
@@ -120,23 +120,23 @@ export const PUSH_CONFIG = {
 export const PLATFORM_CONFIG = {
   [Platform.TOUTIAO]: {
     maxCharacters: 2000,
-    supportedFormats: ['article', 'post'],
-    tags: ['头条', '热点', '推荐'],
+    supportedFormats: ["article", "post"],
+    tags: ["头条", "热点", "推荐"],
   },
   [Platform.WECHAT]: {
     maxCharacters: 5000,
-    supportedFormats: ['article'],
-    tags: ['原创', '精选'],
+    supportedFormats: ["article"],
+    tags: ["原创", "精选"],
   },
   [Platform.WEIBO]: {
     maxCharacters: 140,
-    supportedFormats: ['post', 'tweet'],
-    tags: ['微博', '热门'],
+    supportedFormats: ["post", "tweet"],
+    tags: ["微博", "热门"],
   },
   [Platform.XIAOHONGSHU]: {
     maxCharacters: 1000,
-    supportedFormats: ['post', 'caption'],
-    tags: ['种草', '推荐'],
+    supportedFormats: ["post", "caption"],
+    tags: ["种草", "推荐"],
   },
 } as const;
 
@@ -146,12 +146,12 @@ export const PLATFORM_CONFIG = {
 
 export const LOG_CONFIG = {
   LEVELS: {
-    ERROR: 'error',
-    WARN: 'warn',
-    INFO: 'info',
-    DEBUG: 'debug',
+    ERROR: "error",
+    WARN: "warn",
+    INFO: "info",
+    DEBUG: "debug",
   },
-  DEFAULT_LEVEL: 'info',
+  DEFAULT_LEVEL: "info",
   MAX_LOG_SIZE: 10485760, // 10MB
   LOG_RETENTION_DAYS: 30,
 } as const;
@@ -197,13 +197,13 @@ export const TOPIC_COLLECTION_CONFIG = {
   REFRESH_INTERVAL: 3600000, // 1 hour
   TOPIC_SOURCES: [
     {
-      name: 'weibo',
-      url: 'https://s.weibo.com/top/summary',
+      name: "weibo",
+      url: "https://s.weibo.com/top/summary",
       enabled: true,
     },
     {
-      name: 'zhihu',
-      url: 'https://www.zhihu.com/hot',
+      name: "zhihu",
+      url: "https://www.zhihu.com/hot",
       enabled: true,
     },
   ],
@@ -227,15 +227,15 @@ export const PREFERENCE_CONFIG = {
 // ============================================================================
 
 export const ERROR_MESSAGES = {
-  INVALID_INPUT: 'Invalid input provided',
-  UNAUTHORIZED: 'Unauthorized access',
-  FORBIDDEN: 'Access forbidden',
-  NOT_FOUND: 'Resource not found',
-  INTERNAL_ERROR: 'Internal server error',
-  RATE_LIMIT_EXCEEDED: 'Rate limit exceeded',
-  TIMEOUT: 'Request timeout',
-  INVALID_TOKEN: 'Invalid authentication token',
-  MISSING_REQUIRED_FIELD: 'Missing required field',
+  INVALID_INPUT: "Invalid input provided",
+  UNAUTHORIZED: "Unauthorized access",
+  FORBIDDEN: "Access forbidden",
+  NOT_FOUND: "Resource not found",
+  INTERNAL_ERROR: "Internal server error",
+  RATE_LIMIT_EXCEEDED: "Rate limit exceeded",
+  TIMEOUT: "Request timeout",
+  INVALID_TOKEN: "Invalid authentication token",
+  MISSING_REQUIRED_FIELD: "Missing required field",
 } as const;
 
 // ============================================================================
@@ -243,10 +243,10 @@ export const ERROR_MESSAGES = {
 // ============================================================================
 
 export const SUCCESS_MESSAGES = {
-  CREATED: 'Resource created successfully',
-  UPDATED: 'Resource updated successfully',
-  DELETED: 'Resource deleted successfully',
-  COMPLETED: 'Task completed successfully',
+  CREATED: "Resource created successfully",
+  UPDATED: "Resource updated successfully",
+  DELETED: "Resource deleted successfully",
+  COMPLETED: "Task completed successfully",
 } as const;
 
 // ============================================================================

@@ -4,7 +4,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run build",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.37",

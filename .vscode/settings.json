@@ -1,0 +1,52 @@
+{
+  // 使用 Oxc 作为默认格式化器
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+
+  // 保存时自动格式化
+  "editor.formatOnSave": true,
+
+  // 为特定语言设置格式化器
+  "[javascript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+
+  // 启用 Oxlint 进行代码检查
+  "oxlint.enable": true,
+
+  // Oxlint 配置文件路径
+  "oxlint.config": "./oxlint.json",
+
+  // Oxfmt 配置文件路径
+  "oxfmt.config": "./.oxfmtrc.json",
+
+  // 确保 VSCode 显示错误和警告的波浪线
+  "editor.problemDecorations.enabled": true,
+  "editor.showErrors": true,
+  "editor.showWarnings": true,
+
+  // 在编辑器内联显示错误
+  "editor.inlineSuggest.enabled": true,
+
+  // TypeScript 配置，避免与 oxlint 冲突
+  // "typescript.validate.enable": false,
+
+  // 保存时运行 lint 任务
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  }
+}

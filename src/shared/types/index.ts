@@ -3,15 +3,15 @@
 // ============================================================================
 
 export enum AgentType {
-  MAIN = 'main',
-  SUB = 'sub',
+  MAIN = "main",
+  SUB = "sub",
 }
 
 export enum AgentState {
-  CREATED = 'created',
-  ACTIVE = 'active',
-  PAUSED = 'paused',
-  TERMINATED = 'terminated',
+  CREATED = "created",
+  ACTIVE = "active",
+  PAUSED = "paused",
+  TERMINATED = "terminated",
 }
 
 export interface BaseAgent {
@@ -66,27 +66,27 @@ export interface Message {
 }
 
 export enum MessageRole {
-  USER = 'user',
-  ASSISTANT = 'assistant',
-  SYSTEM = 'system',
+  USER = "user",
+  ASSISTANT = "assistant",
+  SYSTEM = "system",
 }
 
 export type MessageContent = TextContent | ToolCallContent | ToolResultContent;
 
 export interface TextContent {
-  type: 'text';
+  type: "text";
   text: string;
 }
 
 export interface ToolCallContent {
-  type: 'tool_call';
+  type: "tool_call";
   toolCallId: string;
   toolName: string;
   parameters: Record<string, any>;
 }
 
 export interface ToolResultContent {
-  type: 'tool_result';
+  type: "tool_result";
   toolCallId: string;
   result: any;
   isError?: boolean;
@@ -100,11 +100,11 @@ export interface Part {
 }
 
 export enum PartType {
-  TEXT = 'text',
-  IMAGE = 'image',
-  CODE = 'code',
-  TOOL_CALL = 'tool_call',
-  TOOL_RESULT = 'tool_result',
+  TEXT = "text",
+  IMAGE = "image",
+  CODE = "code",
+  TOOL_CALL = "tool_call",
+  TOOL_RESULT = "tool_result",
 }
 
 export interface PartMetadata {
@@ -142,17 +142,17 @@ export interface Task {
 }
 
 export enum TaskType {
-  IMMEDIATE = 'immediate',
-  SCHEDULED = 'scheduled',
-  SUB = 'sub',
+  IMMEDIATE = "immediate",
+  SCHEDULED = "scheduled",
+  SUB = "sub",
 }
 
 export enum TaskStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled',
+  PENDING = "pending",
+  RUNNING = "running",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  CANCELLED = "cancelled",
 }
 
 export interface SubTask {
@@ -184,11 +184,11 @@ export interface Skill {
 }
 
 export enum SkillCategory {
-  SEARCH = 'search',
-  CONTENT_GENERATION = 'content_generation',
-  DATA_ANALYSIS = 'data_analysis',
-  PLATFORM_PUBLISH = 'platform_publish',
-  UTILITY = 'utility',
+  SEARCH = "search",
+  CONTENT_GENERATION = "content_generation",
+  DATA_ANALYSIS = "data_analysis",
+  PLATFORM_PUBLISH = "platform_publish",
+  UTILITY = "utility",
 }
 
 export interface SkillParameter {
@@ -206,7 +206,7 @@ export interface SkillResult {
 }
 
 export interface ToolCallDefinition {
-  type: 'function';
+  type: "function";
   function: {
     name: string;
     description: string;
@@ -244,24 +244,24 @@ export interface WritingStyle {
 }
 
 export enum Tone {
-  FORMAL = 'formal',
-  CASUAL = 'casual',
-  HUMOROUS = 'humorous',
-  PROFESSIONAL = 'professional',
-  FRIENDLY = 'friendly',
+  FORMAL = "formal",
+  CASUAL = "casual",
+  HUMOROUS = "humorous",
+  PROFESSIONAL = "professional",
+  FRIENDLY = "friendly",
 }
 
 export enum Length {
-  SHORT = 'short',
-  MEDIUM = 'medium',
-  LONG = 'long',
+  SHORT = "short",
+  MEDIUM = "medium",
+  LONG = "long",
 }
 
 export enum Format {
-  ARTICLE = 'article',
-  POST = 'post',
-  TWEET = 'tweet',
-  CAPTION = 'caption',
+  ARTICLE = "article",
+  POST = "post",
+  TWEET = "tweet",
+  CAPTION = "caption",
 }
 
 export interface PreferenceMetadata {
@@ -281,39 +281,39 @@ export interface SSEEvent {
 
 export enum EventType {
   // 模型相关事件
-  MODEL_STREAM_START = 'model_stream_start',
-  MODEL_STREAM_CHUNK = 'model_stream_chunk',
-  MODEL_STREAM_END = 'model_stream_end',
-  MODEL_ERROR = 'model_error',
+  MODEL_STREAM_START = "model_stream_start",
+  MODEL_STREAM_CHUNK = "model_stream_chunk",
+  MODEL_STREAM_END = "model_stream_end",
+  MODEL_ERROR = "model_error",
 
   // 会话相关事件
-  SESSION_CREATED = 'session_created',
-  SESSION_UPDATED = 'session_updated',
-  SESSION_DELETED = 'session_deleted',
+  SESSION_CREATED = "session_created",
+  SESSION_UPDATED = "session_updated",
+  SESSION_DELETED = "session_deleted",
 
   // 消息相关事件
-  MESSAGE_CREATED = 'message_created',
-  MESSAGE_UPDATED = 'message_updated',
+  MESSAGE_CREATED = "message_created",
+  MESSAGE_UPDATED = "message_updated",
 
   // 任务相关事件
-  TASK_CREATED = 'task_created',
-  TASK_UPDATED = 'task_updated',
-  TASK_COMPLETED = 'task_completed',
-  TASK_FAILED = 'task_failed',
+  TASK_CREATED = "task_created",
+  TASK_UPDATED = "task_updated",
+  TASK_COMPLETED = "task_completed",
+  TASK_FAILED = "task_failed",
 
   // Agent 相关事件
-  AGENT_CREATED = 'agent_created',
-  AGENT_UPDATED = 'agent_updated',
-  AGENT_STATE_CHANGED = 'agent_state_changed',
+  AGENT_CREATED = "agent_created",
+  AGENT_UPDATED = "agent_updated",
+  AGENT_STATE_CHANGED = "agent_state_changed",
 
   // 推送相关事件
-  PUSH_NOTIFICATION = 'push_notification',
-  TOPIC_SUGGESTION = 'topic_suggestion',
+  PUSH_NOTIFICATION = "push_notification",
+  TOPIC_SUGGESTION = "topic_suggestion",
 
   // 系统相关事件
-  ERROR = 'error',
-  WARNING = 'warning',
-  INFO = 'info',
+  ERROR = "error",
+  WARNING = "warning",
+  INFO = "info",
 }
 
 // ============================================================================
@@ -322,7 +322,7 @@ export enum EventType {
 
 export interface ChatParams {
   messages: Array<{
-    role: 'user' | 'assistant' | 'system';
+    role: "user" | "assistant" | "system";
     content: string;
     toolCalls?: ToolCallContent[];
   }>;
@@ -352,10 +352,10 @@ export interface LLMProviderConfig {
 // ============================================================================
 
 export enum Platform {
-  TOUTIAO = 'toutiao',
-  WECHAT = 'wechat',
-  WEIBO = 'weibo',
-  XIAOHONGSHU = 'xiaohongshu',
+  TOUTIAO = "toutiao",
+  WECHAT = "wechat",
+  WEIBO = "weibo",
+  XIAOHONGSHU = "xiaohongshu",
 }
 
 export interface PlatformConfig {
