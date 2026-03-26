@@ -1,4 +1,4 @@
-import type { EventType } from '@/shared/types/index.js';
+import type { EventType } from "@/shared/types/index.js";
 
 /**
  * 事件数据结构定义
@@ -161,7 +161,7 @@ export interface AgentStateChangedData {
 
 export interface PushNotificationData {
   userId: string;
-  type: 'morning' | 'noon' | 'evening';
+  type: "morning" | "noon" | "evening";
   title: string;
   content: string;
   topics: Array<{
@@ -218,26 +218,26 @@ export type EventDataMap = {
   [EventType.MODEL_STREAM_CHUNK]: ModelStreamChunkData;
   [EventType.MODEL_STREAM_END]: ModelStreamEndData;
   [EventType.MODEL_ERROR]: ModelErrorData;
-  
+
   [EventType.SESSION_CREATED]: SessionCreatedData;
   [EventType.SESSION_UPDATED]: SessionUpdatedData;
   [EventType.SESSION_DELETED]: SessionDeletedData;
-  
+
   [EventType.MESSAGE_CREATED]: MessageCreatedData;
   [EventType.MESSAGE_UPDATED]: MessageUpdatedData;
-  
+
   [EventType.TASK_CREATED]: TaskCreatedData;
   [EventType.TASK_UPDATED]: TaskUpdatedData;
   [EventType.TASK_COMPLETED]: TaskCompletedData;
   [EventType.TASK_FAILED]: TaskFailedData;
-  
+
   [EventType.AGENT_CREATED]: AgentCreatedData;
   [EventType.AGENT_UPDATED]: AgentUpdatedData;
   [EventType.AGENT_STATE_CHANGED]: AgentStateChangedData;
-  
+
   [EventType.PUSH_NOTIFICATION]: PushNotificationData;
   [EventType.TOPIC_SUGGESTION]: TopicSuggestionData;
-  
+
   [EventType.ERROR]: ErrorData;
   [EventType.WARNING]: WarningData;
   [EventType.INFO]: InfoData;
@@ -253,7 +253,7 @@ export type GetEventData<T extends EventType> = EventDataMap[T];
  */
 export function createEventData<T extends EventType>(
   eventType: T,
-  data: EventDataMap[T]
+  data: EventDataMap[T],
 ): { type: T; data: EventDataMap[T]; timestamp: number } {
   return {
     type: eventType,

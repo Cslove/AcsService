@@ -1,6 +1,6 @@
-import { EventEmitter as EventEmitter3 } from 'eventemitter3';
-import { v4 as uuidv4 } from 'uuid';
-import type { EventType, SSEEvent } from '@/shared/types/index.js';
+import { EventEmitter as EventEmitter3 } from "eventemitter3";
+import { v4 as uuidv4 } from "uuid";
+import type { EventType, SSEEvent } from "@/shared/types/index.js";
 
 /**
  * 事件监听器包装器
@@ -40,7 +40,7 @@ export class EventBus {
       once?: boolean;
       priority?: number;
       namespace?: string;
-    }
+    },
   ): string {
     const listenerId = uuidv4();
     const wrapper: EventListenerWrapper = {
@@ -52,14 +52,14 @@ export class EventBus {
     };
 
     const key = this.getEventKey(event, wrapper.namespace);
-    
+
     if (!this.listeners.has(key)) {
       this.listeners.set(key, []);
     }
-    
+
     const listeners = this.listeners.get(key)!;
     listeners.push(wrapper);
-    
+
     // 按优先级排序（优先级高的先执行）
     listeners.sort((a, b) => b.priority - a.priority);
 
@@ -75,7 +75,7 @@ export class EventBus {
     options?: {
       priority?: number;
       namespace?: string;
-    }
+    },
   ): string {
     return this.on(event, listener, { ...options, once: true });
   }
@@ -89,7 +89,7 @@ export class EventBus {
       const index = listeners.findIndex((wrapper) => wrapper.id === listenerId);
       if (index !== -1) {
         listeners.splice(index, 1);
-        
+
         if (listeners.length === 0) {
           this.listeners.delete(key);
         }
@@ -110,21 +110,21 @@ export class EventBus {
     options?: {
       namespace?: string;
       deduplicate?: boolean;
-    }
+    },
   ): boolean {
     const key = this.getEventKey(event, options?.namespace);
-    
+
     // 事件去重
     if (options?.deduplicate !== false) {
       const now = Date.now();
       const lastTime = this.recentEvents.get(key);
-      
+
       if (lastTime && now - lastTime < this.deduplicationWindow) {
         return false;
       }
-      
+
       this.recentEvents.set(key, now);
-      
+
       // 清理过期的事件记录
       setTimeout(() => {
         this.recentEvents.delete(key);
@@ -142,7 +142,7 @@ export class EventBus {
       try {
         wrapper.listener(data);
         emitted = true;
-        
+
         // 如果是一次性监听器，移除它
         if (wrapper.once) {
           this.off(wrapper.id);
@@ -169,17 +169,17 @@ export class EventBus {
   removeAllListeners(namespace?: string): void {
     if (namespace) {
       const keysToRemove: string[] = [];
-      
+
       for (const [key, listeners] of this.listeners.entries()) {
         const remainingListeners = listeners.filter((wrapper) => wrapper.namespace !== namespace);
-        
+
         if (remainingListeners.length === 0) {
           keysToRemove.push(key);
         } else {
           this.listeners.set(key, remainingListeners);
         }
       }
-      
+
       keysToRemove.forEach((key) => this.listeners.delete(key));
     } else {
       this.listeners.clear();
@@ -197,7 +197,7 @@ export class EventBus {
       const listeners = this.listeners.get(key);
       return listeners ? listeners.length : 0;
     }
-    
+
     if (namespace) {
       let count = 0;
       for (const listeners of this.listeners.values()) {
@@ -205,7 +205,7 @@ export class EventBus {
       }
       return count;
     }
-    
+
     return this.listeners.size;
   }
 
@@ -224,12 +224,11 @@ export class EventBus {
     this.recentEvents.clear();
   }
 
-
   /**
    * 获取事件键
    */
   private getEventKey(event: EventType | string, namespace?: string): string {
-    const eventStr: string = typeof event === 'string' ? event : (event as string);
+    const eventStr: string = typeof event === "string" ? event : (event as string);
     return namespace ? `${namespace}:${eventStr}` : eventStr;
   }
 }
