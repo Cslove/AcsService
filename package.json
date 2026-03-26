@@ -11,7 +11,8 @@
     "format:check": "oxfmt --check .",
     "check": "pnpm run lint && pnpm run format:check && pnpm run build",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "prepare": "husky"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.37",
@@ -29,10 +30,17 @@
     "@types/node": "^20.19.37",
     "@types/uuid": "^11.0.0",
     "@vitest/ui": "^4.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "oxfmt --write"
+    ]
   }
 }
