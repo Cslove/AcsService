@@ -5,14 +5,16 @@ import type {
   // buildUserFilePath,
 } from "./GitHubStorageConfig.js";
 import { z } from "zod";
+import { logger } from "@/shared/utils/logger.js";
+import { ErrorHandler, ErrorCode } from "@/shared/utils/errorHandler.js";
+import { retryAsync } from "@/shared/utils/retry.js";
 
-/**
- * GitHub 存储适配器
- * 基于 GitHub API 实现数据存储
- */
 export class GitHubStorage {
   private octokit: Octokit;
   private config: Required<GitHubStorageConfig>;
+  private writeQueue: Map<string, Promise<void>> = new Map();
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000;
 
   constructor(config: GitHubStorageConfig) {
     this.config = {
@@ -28,192 +30,290 @@ export class GitHubStorage {
     });
   }
 
-  /**
-   * 读取文件
-   */
   async readFile<T>(path: string, schema?: z.ZodSchema<T>): Promise<T | null> {
-    try {
-      const { data } = await this.octokit.rest.repos.getContent({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        ref: this.config.branch,
-      });
+    return retryAsync(
+      async () => {
+        try {
+          logger.debug(`Reading file: ${path}`);
+          const { data } = await this.octokit.rest.repos.getContent({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            ref: this.config.branch,
+          });
 
-      if (!("content" in data)) {
-        return null;
-      }
+          if (!("content" in data)) {
+            return null;
+          }
 
-      const content = Buffer.from(data.content, "base64").toString("utf-8");
-      const parsed = JSON.parse(content);
+          const content = Buffer.from(data.content, "base64").toString("utf-8");
+          const parsed = JSON.parse(content);
 
-      if (schema) {
-        return schema.parse(parsed);
-      }
+          if (schema) {
+            return schema.parse(parsed);
+          }
 
-      return parsed;
-    } catch (error: any) {
-      if (error.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to read file ${path}: ${error.message}`);
-    }
+          return parsed;
+        } catch (error: any) {
+          if (error.status === 404) {
+            logger.debug(`File not found: ${path}`);
+            return null;
+          }
+          throw ErrorHandler.handle(error, `readFile(${path})`);
+        }
+      },
+      {
+        maxAttempts: this.maxRetries,
+        initialDelay: this.retryDelay,
+        onRetry: (attempt, error) => {
+          logger.warn(`Retrying read file ${path}, attempt ${attempt}`, {
+            error: error.message,
+          });
+        },
+      },
+    );
   }
 
-  /**
-   * 写入文件
-   */
   async writeFile<T>(path: string, data: T, schema?: z.ZodSchema<T>): Promise<void> {
     // 数据校验
     if (schema) {
-      schema.parse(data);
-    }
-
-    // 序列化数据
-    const content = JSON.stringify(data, null, 2);
-    const contentBase64 = Buffer.from(content).toString("base64");
-
-    try {
-      // 获取文件的 SHA（如果存在）
-      let sha: string | undefined;
       try {
-        const { data: existingFile } = await this.octokit.rest.repos.getContent({
-          owner: this.config.owner,
-          repo: this.config.repo,
-          path,
-          ref: this.config.branch,
-        });
-
-        if ("sha" in existingFile) {
-          sha = existingFile.sha;
-        }
-      } catch (error: any) {
-        if (error.status !== 404) {
-          throw error;
-        }
+        schema.parse(data);
+      } catch (error) {
+        throw ErrorHandler.handle(error, `validateData(${path})`);
       }
-
-      // 创建或更新文件
-      await this.octokit.rest.repos.createOrUpdateFileContents({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        message: `Update ${path}`,
-        content: contentBase64,
-        sha,
-        branch: this.config.branch,
-      });
-    } catch (error: any) {
-      throw new Error(`Failed to write file ${path}: ${error.message}`);
     }
+
+    // 检查是否已有正在进行的写入操作
+    const existingWrite = this.writeQueue.get(path);
+    if (existingWrite) {
+      logger.debug(`Waiting for existing write to complete: ${path}`);
+      await existingWrite;
+    }
+
+    // 创建写入Promise并加入队列
+    const writePromise = retryAsync(
+      async () => {
+        try {
+          logger.debug(`Writing file: ${path}`);
+          // 序列化数据
+          const content = JSON.stringify(data, null, 2);
+          const contentBase64 = Buffer.from(content).toString("base64");
+
+          // 获取文件的 SHA（如果存在）
+          let sha: string | undefined;
+          try {
+            const { data: existingFile } = await this.octokit.rest.repos.getContent({
+              owner: this.config.owner,
+              repo: this.config.repo,
+              path,
+              ref: this.config.branch,
+            });
+
+            if ("sha" in existingFile) {
+              sha = existingFile.sha;
+            }
+          } catch (error: any) {
+            if (error.status !== 404) {
+              throw error;
+            }
+          }
+
+          // 创建或更新文件
+          await this.octokit.rest.repos.createOrUpdateFileContents({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            message: `Update ${path}`,
+            content: contentBase64,
+            sha,
+            branch: this.config.branch,
+          });
+
+          logger.info(`File written successfully: ${path}`);
+        } catch (error) {
+          throw ErrorHandler.handle(error, `writeFile(${path})`);
+        } finally {
+          // 完成后从队列中移除
+          this.writeQueue.delete(path);
+        }
+      },
+      {
+        maxAttempts: this.maxRetries,
+        initialDelay: this.retryDelay,
+        shouldRetry: (error) => {
+          // 只对网络错误和冲突错误重试
+          return (
+            error.code === ErrorCode.TIMEOUT ||
+            error.code === ErrorCode.STORAGE_CONFLICT ||
+            error.code === ErrorCode.STORAGE_ERROR
+          );
+        },
+        onRetry: (attempt, error) => {
+          logger.warn(`Retrying write file ${path}, attempt ${attempt}`, {
+            error: error.message,
+          });
+        },
+      },
+    );
+
+    this.writeQueue.set(path, writePromise);
+    return writePromise;
   }
 
-  /**
-   * 删除文件
-   */
   async deleteFile(path: string): Promise<void> {
-    try {
-      // 获取文件的 SHA
-      const { data: existingFile } = await this.octokit.rest.repos.getContent({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        ref: this.config.branch,
-      });
+    return retryAsync(
+      async () => {
+        try {
+          logger.debug(`Deleting file: ${path}`);
+          // 获取文件的 SHA
+          const { data: existingFile } = await this.octokit.rest.repos.getContent({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            ref: this.config.branch,
+          });
 
-      if (!("sha" in existingFile)) {
-        throw new Error("File does not exist");
-      }
+          if (!("sha" in existingFile)) {
+            throw new Error("File does not exist");
+          }
 
-      // 删除文件
-      await this.octokit.rest.repos.deleteFile({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        message: `Delete ${path}`,
-        sha: existingFile.sha,
-        branch: this.config.branch,
-      });
-    } catch (error: any) {
-      if (error.status === 404) {
-        return;
-      }
-      throw new Error(`Failed to delete file ${path}: ${error.message}`);
-    }
+          // 删除文件
+          await this.octokit.rest.repos.deleteFile({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            message: `Delete ${path}`,
+            sha: existingFile.sha,
+            branch: this.config.branch,
+          });
+
+          logger.info(`File deleted successfully: ${path}`);
+        } catch (error: any) {
+          if (error.status === 404) {
+            logger.debug(`File not found for deletion: ${path}`);
+            return;
+          }
+          throw ErrorHandler.handle(error, `deleteFile(${path})`);
+        }
+      },
+      {
+        maxAttempts: this.maxRetries,
+        initialDelay: this.retryDelay,
+        onRetry: (attempt, error) => {
+          logger.warn(`Retrying delete file ${path}, attempt ${attempt}`, {
+            error: error.message,
+          });
+        },
+      },
+    );
   }
 
-  /**
-   * 列出目录中的文件
-   */
   async listFiles(path: string): Promise<string[]> {
-    try {
-      const { data } = await this.octokit.rest.repos.getContent({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        ref: this.config.branch,
-      });
+    return retryAsync(
+      async () => {
+        try {
+          logger.debug(`Listing files in: ${path}`);
+          const { data } = await this.octokit.rest.repos.getContent({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            ref: this.config.branch,
+          });
 
-      if (!Array.isArray(data)) {
-        return [];
-      }
+          if (!Array.isArray(data)) {
+            return [];
+          }
 
-      return data.filter((item) => item.type === "file").map((item) => item.name);
-    } catch (error: any) {
-      if (error.status === 404) {
-        return [];
-      }
-      throw new Error(`Failed to list files in ${path}: ${error.message}`);
-    }
+          return data.filter((item) => item.type === "file").map((item) => item.name);
+        } catch (error: any) {
+          if (error.status === 404) {
+            logger.debug(`Directory not found: ${path}`);
+            return [];
+          }
+          throw ErrorHandler.handle(error, `listFiles(${path})`);
+        }
+      },
+      {
+        maxAttempts: this.maxRetries,
+        initialDelay: this.retryDelay,
+        onRetry: (attempt, error) => {
+          logger.warn(`Retrying list files ${path}, attempt ${attempt}`, {
+            error: error.message,
+          });
+        },
+      },
+    );
   }
 
-  /**
-   * 检查文件是否存在
-   */
   async fileExists(path: string): Promise<boolean> {
-    try {
-      await this.octokit.rest.repos.getContent({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        ref: this.config.branch,
-      });
-      return true;
-    } catch (error: any) {
-      if (error.status === 404) {
-        return false;
-      }
-      throw error;
-    }
+    return retryAsync(
+      async () => {
+        try {
+          await this.octokit.rest.repos.getContent({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            ref: this.config.branch,
+          });
+          return true;
+        } catch (error: any) {
+          if (error.status === 404) {
+            return false;
+          }
+          throw ErrorHandler.handle(error, `fileExists(${path})`);
+        }
+      },
+      {
+        maxAttempts: this.maxRetries,
+        initialDelay: this.retryDelay,
+        onRetry: (attempt, error) => {
+          logger.warn(`Retrying file exists check ${path}, attempt ${attempt}`, {
+            error: error.message,
+          });
+        },
+      },
+    );
   }
 
-  /**
-   * 获取文件信息
-   */
   async getFileInfo(path: string): Promise<{ sha: string; size: number; modifiedAt: Date } | null> {
-    try {
-      const { data } = await this.octokit.rest.repos.getContent({
-        owner: this.config.owner,
-        repo: this.config.repo,
-        path,
-        ref: this.config.branch,
-      });
+    return retryAsync(
+      async () => {
+        try {
+          logger.debug(`Getting file info: ${path}`);
+          const { data } = await this.octokit.rest.repos.getContent({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path,
+            ref: this.config.branch,
+          });
 
-      if (!("sha" in data) || !("size" in data)) {
-        return null;
-      }
+          if (!("sha" in data) || !("size" in data)) {
+            return null;
+          }
 
-      return {
-        sha: data.sha,
-        size: data.size,
-        modifiedAt: new Date(),
-      };
-    } catch (error: any) {
-      if (error.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to get file info ${path}: ${error.message}`);
-    }
+          return {
+            sha: data.sha,
+            size: data.size,
+            modifiedAt: new Date(),
+          };
+        } catch (error: any) {
+          if (error.status === 404) {
+            return null;
+          }
+          throw ErrorHandler.handle(error, `getFileInfo(${path})`);
+        }
+      },
+      {
+        maxAttempts: this.maxRetries,
+        initialDelay: this.retryDelay,
+        onRetry: (attempt, error) => {
+          logger.warn(`Retrying get file info ${path}, attempt ${attempt}`, {
+            error: error.message,
+          });
+        },
+      },
+    );
   }
 
   /**
@@ -224,9 +324,6 @@ export class GitHubStorage {
     await this.writeFile(gitkeepPath, {});
   }
 
-  /**
-   * 批量读取文件
-   */
   async readFiles<T>(paths: string[], schema?: z.ZodSchema<T>): Promise<Map<string, T>> {
     const results = new Map<string, T>();
 
@@ -242,9 +339,6 @@ export class GitHubStorage {
     return results;
   }
 
-  /**
-   * 批量写入文件
-   */
   async writeFiles<T>(entries: Map<string, T>, schema?: z.ZodSchema<T>): Promise<void> {
     await Promise.all(
       Array.from(entries.entries()).map(([path, data]) => this.writeFile(path, data, schema)),
