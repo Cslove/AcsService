@@ -34,15 +34,20 @@ export interface LogEntry {
   stack?: string;
 }
 
-class Logger {
+export class Logger {
   private level: LogLevel;
   private context: LogContext;
   private logEntries: LogEntry[] = [];
   private maxEntries: number = 1000;
 
-  constructor(level: LogLevel = LogLevel.INFO, context: LogContext = {}) {
+  constructor(
+    level: LogLevel = LogLevel.INFO,
+    context: LogContext = {},
+    maxEntries: number = 1000,
+  ) {
     this.level = level;
     this.context = context;
+    this.maxEntries = maxEntries;
   }
 
   /**

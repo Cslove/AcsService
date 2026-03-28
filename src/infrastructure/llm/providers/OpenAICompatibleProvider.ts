@@ -76,7 +76,7 @@ export class OpenAICompatibleProvider extends BaseProvider {
             error.code === ErrorCode.LLM_API_ERROR
           );
         },
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying chat completion, attempt ${attempt}`, {
             model: this.model,
             error: error.message,
@@ -115,7 +115,7 @@ export class OpenAICompatibleProvider extends BaseProvider {
               error.code === ErrorCode.LLM_API_ERROR
             );
           },
-          onRetry: (attempt, error) => {
+          onRetry: (error, attempt) => {
             logger.warn(`Retrying stream chat completion, attempt ${attempt}`, {
               model: this.model,
               error: error.message,

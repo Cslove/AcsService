@@ -65,7 +65,7 @@ export class GitHubStorage {
       {
         maxAttempts: this.maxRetries,
         initialDelay: this.retryDelay,
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying read file ${path}, attempt ${attempt}`, {
             error: error.message,
           });
@@ -149,7 +149,7 @@ export class GitHubStorage {
             error.code === ErrorCode.STORAGE_ERROR
           );
         },
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying write file ${path}, attempt ${attempt}`, {
             error: error.message,
           });
@@ -200,7 +200,7 @@ export class GitHubStorage {
       {
         maxAttempts: this.maxRetries,
         initialDelay: this.retryDelay,
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying delete file ${path}, attempt ${attempt}`, {
             error: error.message,
           });
@@ -237,7 +237,7 @@ export class GitHubStorage {
       {
         maxAttempts: this.maxRetries,
         initialDelay: this.retryDelay,
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying list files ${path}, attempt ${attempt}`, {
             error: error.message,
           });
@@ -267,7 +267,7 @@ export class GitHubStorage {
       {
         maxAttempts: this.maxRetries,
         initialDelay: this.retryDelay,
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying file exists check ${path}, attempt ${attempt}`, {
             error: error.message,
           });
@@ -307,7 +307,7 @@ export class GitHubStorage {
       {
         maxAttempts: this.maxRetries,
         initialDelay: this.retryDelay,
-        onRetry: (attempt, error) => {
+        onRetry: (error, attempt) => {
           logger.warn(`Retrying get file info ${path}, attempt ${attempt}`, {
             error: error.message,
           });

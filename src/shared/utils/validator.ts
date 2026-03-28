@@ -96,7 +96,8 @@ export function validateEnvVars(requiredVars: string[]): { valid: boolean; missi
   const missing: string[] = [];
 
   for (const varName of requiredVars) {
-    if (!process.env[varName]) {
+    const value = process.env[varName];
+    if (!value || value.trim() === "") {
       missing.push(varName);
     }
   }
@@ -144,7 +145,7 @@ export function validatePaginationParams(params: { page?: number; pageSize?: num
   pageSize: number;
 } {
   const page = Math.max(1, params.page || 1);
-  const pageSize = Math.max(1, Math.min(100, params.pageSize || 10));
+  const pageSize = params.pageSize !== undefined ? Math.max(1, Math.min(100, params.pageSize)) : 10;
   return { page, pageSize };
 }
 
@@ -208,7 +209,8 @@ export function sanitizeObject<T extends Record<string, any>>(
  */
 export function validateFileExtension(filename: string, allowedExtensions: string[]): boolean {
   const ext = filename.split(".").pop()?.toLowerCase();
-  return ext ? allowedExtensions.includes(ext) : false;
+  const extWithDot = ext ? `.${ext}` : "";
+  return allowedExtensions.some((allowed) => allowed.toLowerCase() === extWithDot);
 }
 
 /**
