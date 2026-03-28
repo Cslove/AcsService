@@ -4,7 +4,7 @@
  */
 
 import { logger } from "./logger.js";
-import { AppError, ErrorHandler, ErrorCode } from "./errorHandler.js";
+import { AppError } from "./errorHandler.js";
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -30,7 +30,7 @@ export const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
     logger.warn(`Retry attempt ${attempt}`, { error: errorMsg });
   },
   delay: (attempt) => 1000 * Math.pow(2, attempt - 1),
-  wrapError: (error, attempt) => error,
+  wrapError: (error) => error,
 };
 
 /**
@@ -101,7 +101,6 @@ export async function retryAsync<T>(fn: () => Promise<T>, options: RetryOptions 
  */
 export function retrySync<T>(fn: () => T, options: RetryOptions = {}): T {
   const opts = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  let lastError: Error | undefined;
   let lastResult: T | undefined;
 
   for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
@@ -138,7 +137,6 @@ export function retrySync<T>(fn: () => T, options: RetryOptions = {}): T {
       return result;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      lastError = err;
 
       // 检查是否应该重试
       if (!opts.shouldRetry || !opts.shouldRetry(err) || attempt === opts.maxAttempts) {

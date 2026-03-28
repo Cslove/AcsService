@@ -2,13 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
 import { FileCache } from "@/infrastructure/storage/cache/FileCache.js";
 import { promises as fs } from "fs";
 import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 describe("FileCache", () => {
   let cache: FileCache;
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = path.join(process.cwd(), ".cache-test", `test-${Date.now()}`);
+    tempDir = path.join(process.cwd(), ".cache-test", `test-${uuidv4()}`);
     cache = new FileCache({ cacheDir: tempDir, maxAge: 1000 * 60 });
   });
 

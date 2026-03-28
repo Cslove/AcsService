@@ -126,6 +126,17 @@ export class FileCache<T = any> {
   async set(key: string, value: T, ttl?: number): Promise<void> {
     await this.ensureInitialized();
 
+    // Delete existing entry if it exists
+    const existingEntry = this.index.get(key);
+    if (existingEntry) {
+      try {
+        await fs.unlink(existingEntry.filename);
+      } catch {
+        // Ignore if file doesn't exist
+      }
+      this.index.delete(key);
+    }
+
     const filename = path.join(this.cacheDir, `${uuidv4()}.json`);
     const data = JSON.stringify(value);
     const size = Buffer.byteLength(data, "utf-8");
