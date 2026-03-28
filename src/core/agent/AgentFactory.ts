@@ -6,8 +6,8 @@
 import { BaseAgent, type AgentConfig } from "./BaseAgent.js";
 import { MainAgent, type MainAgentConfig } from "./MainAgent.js";
 import { SubAgent, type SubAgentConfig } from "./SubAgent.js";
-import { logger } from "../../shared/utils/logger.js";
-import { AppError, ErrorCode } from "../../shared/utils/errorHandler.js";
+import { logger } from "@/shared/utils/logger.js";
+import { AppError, ErrorCode } from "@/shared/utils/errorHandler.js";
 
 /**
  * Agent 类型枚举

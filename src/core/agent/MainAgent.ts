@@ -4,7 +4,7 @@
  */
 
 import { BaseAgent, type AgentConfig, AgentState } from "./BaseAgent.js";
-import { AppError, ErrorCode } from "../../shared/utils/errorHandler.js";
+import { AppError, ErrorCode } from "@/shared/utils/errorHandler.js";
 
 /**
  * 品味分析结果接口

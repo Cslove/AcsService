@@ -4,7 +4,7 @@
  */
 
 import { BaseAgent, type AgentConfig, AgentState } from "./BaseAgent.js";
-import { AppError, ErrorCode } from "../../shared/utils/errorHandler.js";
+import { AppError, ErrorCode } from "@/shared/utils/errorHandler.js";
 
 /**
  * 子代理配置

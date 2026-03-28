@@ -3,8 +3,8 @@
  * 定义 Agent 的核心接口和通用功能
  */
 
-import { logger } from "../../shared/utils/logger.js";
-import { AppError, ErrorCode } from "../../shared/utils/errorHandler.js";
+import { logger } from "@/shared/utils/logger.js";
+import { AppError, ErrorCode } from "@/shared/utils/errorHandler.js";
 
 /**
  * Agent 状态枚举
