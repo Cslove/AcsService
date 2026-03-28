@@ -74,21 +74,24 @@ export class TaskExecutor {
     const startTime = Date.now();
 
     try {
-      const executionPromise = this.executeInternal(task);
+      const executionPromise = (async () => {
+        const taskOutput = await this.executeInternal(task);
+        const duration = Date.now() - startTime;
+
+        this.log.info(`Task executed: ${task.getName()} (${duration}ms)`);
+
+        return {
+          taskId: task.getId(),
+          taskName: task.getName(),
+          success: taskOutput.success,
+          output: taskOutput,
+          duration,
+        };
+      })();
       this.activeExecutions.set(taskId, executionPromise);
 
-      const taskOutput = await executionPromise;
-      const duration = Date.now() - startTime;
-
-      this.log.info(`Task executed: ${task.getName()} (${duration}ms)`);
-
-      return {
-        taskId: task.getId(),
-        taskName: task.getName(),
-        success: taskOutput.success,
-        output: taskOutput,
-        duration,
-      };
+      const result = await executionPromise;
+      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       const err = error as Error;
