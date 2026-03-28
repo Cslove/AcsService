@@ -234,66 +234,71 @@ export class Task {
       );
     }
 
-    this.setState(TaskState.RUNNING);
-    this.context.startTime = new Date();
-    this.updateTimestamp();
+    // 使用循环代替递归，避免栈溢出
+    while (this.context.retryCount <= this.config.maxRetries!) {
+      this.setState(TaskState.RUNNING);
+      this.context.startTime = new Date();
+      this.updateTimestamp();
 
-    this.log.info(`Task started: ${this.config.name}`);
+      this.log.info(`Task started: ${this.config.name}`);
 
-    try {
-      // 执行任务，带超时控制
-      const output = await Promise.race([
-        this.executor(this.input),
-        new Promise<TaskOutput>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`Task timeout after ${this.config.timeout}ms`)),
-            this.config.timeout,
+      try {
+        // 执行任务，带超时控制
+        const output = await Promise.race([
+          this.executor(this.input),
+          new Promise<TaskOutput>((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`Task timeout after ${this.config.timeout}ms`)),
+              this.config.timeout,
+            ),
           ),
-        ),
-      ]);
+        ]);
 
-      this.context.result = output;
-      this.context.endTime = new Date();
-      this.context.duration = this.context.endTime.getTime() - this.context.startTime!.getTime();
+        this.context.result = output;
+        this.context.endTime = new Date();
+        this.context.duration = this.context.endTime.getTime() - this.context.startTime!.getTime();
 
-      if (output.success) {
-        this.setState(TaskState.COMPLETED);
-        this.log.info(`Task completed successfully: ${this.config.name}`);
-      } else {
-        throw output.error || new Error("Task failed");
-      }
+        if (output.success) {
+          this.setState(TaskState.COMPLETED);
+          this.log.info(`Task completed successfully: ${this.config.name}`);
+          return output;
+        } else {
+          throw output.error || new Error("Task failed");
+        }
+      } catch (error) {
+        this.context.error = error as Error;
+        this.context.endTime = new Date();
+        this.context.duration = this.context.endTime.getTime() - this.context.startTime!.getTime();
 
-      return output;
-    } catch (error) {
-      this.context.error = error as Error;
-      this.context.endTime = new Date();
-      this.context.duration = this.context.endTime.getTime() - this.context.startTime!.getTime();
+        // 检查是否可以重试
+        if (this.context.retryCount < this.config.maxRetries!) {
+          this.context.retryCount++;
+          this.setState(TaskState.FAILED);
+          this.log.warn(
+            `Task failed, retrying (${this.context.retryCount}/${this.config.maxRetries}): ${this.config.name}`,
+          );
 
-      // 检查是否可以重试
-      if (this.context.retryCount < this.config.maxRetries!) {
-        this.context.retryCount++;
-        this.setState(TaskState.FAILED);
-        this.log.warn(
-          `Task failed, retrying (${this.context.retryCount}/${this.config.maxRetries}): ${this.config.name}`,
-        );
+          // 重置状态为 PENDING 以便重试
+          this.context.state = TaskState.PENDING;
+          this.context.startTime = undefined;
+          this.context.endTime = undefined;
+          this.context.duration = undefined;
 
-        // 重置状态为 PENDING 以便重试
-        this.context.state = TaskState.PENDING;
-        this.context.startTime = undefined;
-        this.context.endTime = undefined;
-        this.context.duration = undefined;
-
-        // 递归重试
-        return this.start();
-      } else {
-        this.setState(TaskState.FAILED);
-        this.log.error(
-          `Task failed after ${this.config.maxRetries} retries: ${this.config.name}`,
-          error,
-        );
-        throw error;
+          // 继续循环进行重试
+          continue;
+        } else {
+          this.setState(TaskState.FAILED);
+          this.log.error(
+            `Task failed after ${this.config.maxRetries} retries: ${this.config.name}`,
+            error,
+          );
+          throw error;
+        }
       }
     }
+
+    // 理论上不应该到达这里
+    throw new AppError("Task execution failed unexpectedly", ErrorCode.TASK_ERROR, 500);
   }
 
   /**

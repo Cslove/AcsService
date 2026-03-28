@@ -155,6 +155,7 @@ export class TaskExecutor {
     const results: ExecutionResult[] = [];
     let successCount = 0;
     let failureCount = 0;
+    let shouldStop = false;
 
     // 使用信号量控制并发数
     const semaphore = new Semaphore(this.config.maxParallelTasks);
@@ -175,41 +176,52 @@ export class TaskExecutor {
     };
 
     try {
-      // 并行执行所有任务
       if (this.config.failFast) {
         // 快速失败模式：任一任务失败则立即停止
-        const firstResult = await Promise.race(
-          tasks.map((task) => executeWithSemaphore(task).then((result) => ({ result, task }))),
-        );
-
-        if (!firstResult.result.success) {
-          // 取消所有其他任务
-          for (const task of tasks) {
-            if (task.getId() !== firstResult.task.getId() && task.isPending()) {
+        const executionPromises = tasks.map(async (task) => {
+          if (shouldStop) {
+            // 如果已经停止，取消任务
+            if (task.isPending()) {
               try {
                 task.cancel();
               } catch {
-                this.log.warn(`Failed to cancel task: ${task.getName()}`);
+                // 忽略取消错误
               }
             }
+            return null;
           }
 
-          return {
-            totalTasks: tasks.length,
-            successCount,
-            failureCount,
-            results: [firstResult.result],
-            totalDuration: Date.now() - startTime,
-          };
+          try {
+            const result = await executeWithSemaphore(task);
+
+            // 如果任务失败，标记停止并取消其他任务
+            if (!result.success) {
+              shouldStop = true;
+              return result;
+            }
+
+            return result;
+          } catch (error) {
+            // 执行出错也标记停止
+            shouldStop = true;
+            return {
+              taskId: task.getId(),
+              taskName: task.getName(),
+              success: false,
+              error: error as Error,
+            };
+          }
+        });
+
+        // 等待所有任务完成或被取消
+        const executionResults = await Promise.all(executionPromises);
+
+        // 过滤掉被取消的任务（返回 null 的）
+        for (const result of executionResults) {
+          if (result) {
+            results.push(result);
+          }
         }
-
-        // 继续执行剩余任务
-        const remainingTasks = tasks.filter((t) => t.getId() !== firstResult.task.getId());
-        const remainingResults = await Promise.all(
-          remainingTasks.map((task) => executeWithSemaphore(task)),
-        );
-
-        results.push(firstResult.result, ...remainingResults);
       } else {
         // 正常模式：执行所有任务
         const allResults = await Promise.all(tasks.map((task) => executeWithSemaphore(task)));

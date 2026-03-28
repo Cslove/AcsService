@@ -125,6 +125,16 @@ export class Session {
       throw new AppError("Cannot add message to closed session", ErrorCode.INVALID_INPUT, 400);
     }
 
+    // 验证消息的 sessionId 是否匹配
+    const messageSessionId = message.getSessionId();
+    if (messageSessionId && messageSessionId !== this.config.id) {
+      throw new AppError(
+        `Message sessionId "${messageSessionId}" does not match session id "${this.config.id}"`,
+        ErrorCode.INVALID_INPUT,
+        400,
+      );
+    }
+
     // 检查是否超过最大消息数限制，如果超过则移除最旧的消息
     if (this.config.maxMessages && this.messages.length >= this.config.maxMessages) {
       const removed = this.messages.shift();
