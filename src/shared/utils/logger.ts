@@ -1,14 +1,26 @@
-/**
- * 日志工具
- * 提供结构化的日志记录功能
- */
-
 export enum LogLevel {
   ERROR = "error",
   WARN = "warn",
   INFO = "info",
   DEBUG = "debug",
 }
+
+const COLORS = {
+  reset: "\x1b[0m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  green: "\x1b[32m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+  gray: "\x1b[90m",
+} as const;
+
+const LEVEL_COLORS = {
+  [LogLevel.ERROR]: COLORS.red,
+  [LogLevel.WARN]: COLORS.yellow,
+  [LogLevel.INFO]: COLORS.green,
+  [LogLevel.DEBUG]: COLORS.blue,
+} as const;
 
 export interface LogContext {
   [key: string]: any;
@@ -103,24 +115,26 @@ class Logger {
 
     this.logEntries.push(entry);
 
-    // 保持日志条目数量在限制内
     if (this.logEntries.length > this.maxEntries) {
       this.logEntries.shift();
     }
 
-    // 输出到控制台
     this.output(entry);
   }
 
-  /**
-   * 输出日志到控制台
-   */
   private output(entry: LogEntry): void {
     const timestamp = entry.timestamp.toISOString();
-    const contextStr = entry.context ? ` ${JSON.stringify(entry.context)}` : "";
-    const stackStr = entry.context?.error?.stack ? `\n${entry.context.error.stack}` : "";
+    const levelColor = LEVEL_COLORS[entry.level] || COLORS.reset;
+    const level = entry.level.toUpperCase();
 
-    const logMessage = `[${timestamp}] [${entry.level.toUpperCase()}] ${entry.message}${contextStr}${stackStr}`;
+    const hasContext = entry.context && Object.keys(entry.context).length > 0;
+    const contextStr = hasContext
+      ? ` ${COLORS.cyan}${JSON.stringify(entry.context)}${COLORS.reset}`
+      : "";
+    const stackStr = entry.context?.error?.stack
+      ? `\n${COLORS.gray}${entry.context.error.stack}${COLORS.reset}`
+      : "";
+    const logMessage = `${COLORS.gray}[${timestamp}]${COLORS.reset} ${levelColor}[${level}]${COLORS.reset} ${entry.message}${contextStr}${stackStr}`;
 
     switch (entry.level) {
       case LogLevel.ERROR:
