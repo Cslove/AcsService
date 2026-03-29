@@ -780,74 +780,143 @@ mkdir -p tests/{unit,integration,e2e}
 
 ### 阶段五：API 层实现
 
-#### 步骤 5.1：Hono 服务器搭建
+#### 步骤 5.1：完善 Hono 服务器和路由架构
 
-**目标**：搭建基于 Hono 的 HTTP/SSE 服务器。
+**目标**：在现有 `src/index.ts` 基础上完善 API 路由架构。
+
+**背景**：项目已完成基础设施层、领域层和应用层，`src/index.ts` 已有基础的 Hono 服务器框架，但 `src/api/` 目录为空。
 
 **具体步骤**：
 
-1. **创建 `src/api/app.ts`**
-   - 初始化 Hono 应用
-   - 配置中间件
-   - 配置错误处理
+1. **创建 API 路由目录结构**
 
-2. \*\*创建 `src/api/middleware/`
-   - 认证中间件
-   - 日志中间件
-   - 错误处理中间件
+   ```bash
+   mkdir -p src/api/routes
+   mkdir -p src/api/middleware
+   mkdir -p src/api/controllers
+   ```
 
-3. **创建 `src/api/routes/index.ts`**
-   - 路由注册
-   - 路由分组
+2. **创建 `src/api/routes/index.ts`**
+   - 导入所有路由模块
+   - 使用 Hono 的路由分组功能
+   - 注册 `/api` 前缀
+   - 集成到 `src/index.ts` 的主应用中
 
-#### 步骤 5.2：HTTP API 实现
+3. **创建 `src/api/middleware/auth.ts`**
+   - 基于 `src/shared/utils/errorHandler.ts` 的 `AppError` 实现认证中间件
+   - 集成 `src/shared/config/` 中的环境变量验证
+   - 支持用户身份验证（从 headers 或 query 参数获取 userId）
 
-**目标**：实现 RESTful API。
+4. **创建 `src/api/middleware/logger.ts`**
+   - 基于 `src/shared/utils/logger.ts` 的 `Logger` 实现请求日志中间件
+   - 记录请求方法、路径、响应时间、状态码
+   - 使用 `logger.withContext()` 添加上下文信息
+
+5. **创建 `src/api/middleware/errorHandler.ts`**
+   - 基于 `src/shared/utils/errorHandler.ts` 的 `ErrorHandler` 实现全局错误处理
+   - 捕获 `AppError` 及其子类（`StorageError`、`LLMError`、`CacheError`、`TaskError`、`AgentError`）
+   - 返回标准化的错误响应格式
+
+#### 步骤 5.2：实现 HTTP API 路由
+
+**目标**：基于现有的应用层服务实现 RESTful API。
+
+**背景**：应用层已实现 `ConversationService`、`TaskService`、`ContentGenerationService`、`PushService`。
 
 **具体步骤**：
 
 1. **创建 `src/api/routes/conversation.ts`**
-   - 创建会话
-   - 发送消息
-   - 获取历史
+   - `POST /api/conversations` - 调用 `ConversationService.createConversation()`
+   - `POST /api/conversations/:sessionId/messages` - 调用 `ConversationService.sendMessage()`
+   - `GET /api/conversations/:sessionId/history` - 调用 `ConversationService.getConversationHistory()`
+   - `GET /api/conversations/:sessionId/summary` - 调用 `ConversationService.getConversationSummary()`
+   - `POST /api/conversations/:sessionId/pause` - 调用 `ConversationService.pauseConversation()`
+   - `POST /api/conversations/:sessionId/resume` - 调用 `ConversationService.resumeConversation()`
+   - `DELETE /api/conversations/:sessionId` - 调用 `ConversationService.deleteConversation()`
 
 2. **创建 `src/api/routes/task.ts`**
-   - 创建任务
-   - 查询任务状态
-   - 取消任务
+   - `POST /api/tasks` - 调用 `TaskService.createTask()`
+   - `POST /api/tasks/:taskId/execute` - 调用 `TaskService.executeTask()`
+   - `GET /api/tasks` - 支持按状态、用户、会话筛选
+   - `GET /api/tasks/:taskId` - 获取任务详情
+   - `POST /api/tasks/:taskId/cancel` - 调用 `TaskService.cancelTask()`
+   - `DELETE /api/tasks/:taskId` - 调用 `TaskService.deleteTask()`
 
-3. **创建 `src/api/routes/preference.ts`**
-   - 获取偏好
-   - 更新偏好
+3. **创建 `src/api/routes/content.ts`**
+   - `POST /api/content/generate` - 调用 `ContentGenerationService.generateContent()`
+   - `POST /api/content/batch-generate` - 调用 `ContentGenerationService.generateContents()`
+   - `POST /api/content/transform` - 调用 `ContentGenerationService.transformContent()`
+   - `POST /api/content/templates` - 调用 `ContentGenerationService.createTemplate()`
+   - `POST /api/content/templates/:templateId/generate` - 调用 `ContentGenerationService.generateFromTemplate()`
 
-4. **创建 `src/api/routes/agent.ts`**
-   - Agent 管理
-   - Skill 管理
+4. **创建 `src/api/routes/push.ts`**
+   - `POST /api/push/topics` - 调用 `PushService.addTopic()`
+   - `POST /api/push/topics/batch` - 调用 `PushService.addTopics()`
+   - `POST /api/push/filter` - 调用 `PushService.filterTopics()`
+   - `POST /api/push/users/:userId/topics` - 调用 `PushService.pushTopicsToUser()`
+   - `GET /api/push/topics/trending` - 调用 `PushService.getTrendingTopics()`
+   - `GET /api/push/topics/high-relevance` - 调用 `PushService.getHighRelevanceTopics()`
 
-#### 步骤 5.3：SSE 实现和连接管理
+5. **创建 `src/api/routes/preference.ts`**
+   - `GET /api/preferences/:userId` - 调用 `PreferenceManager.getPreference()`
+   - `PUT /api/preferences/:userId` - 调用 `PreferenceManager.updatePreference()`
+   - `POST /api/preferences/:userId/analyze` - 调用 `PreferenceManager.updateFromMessages()`
+   - `DELETE /api/preferences/:userId` - 调用 `PreferenceManager.deletePreference()`
 
-**目标**：实现 SSE 实时推送。
+6. **创建 `src/api/routes/agent.ts`**
+   - `GET /api/agents` - 调用 `AgentFactory.getAllAgents()`
+   - `GET /api/agents/:agentName` - 调用 `AgentFactory.getAgent()`
+   - `POST /api/agents` - 调用 `AgentFactory.createAgent()`
+   - `DELETE /api/agents/:agentName` - 调用 `AgentFactory.removeAgent()`
+   - `GET /api/agents/stats` - 调用 `AgentFactory.getStats()`
+   - `GET /api/skills` - 调用 `SkillRegistry.getAll()`
+   - `GET /api/skills/:skillId` - 调用 `SkillRegistry.get()`
+   - `POST /api/skills` - 调用 `SkillRegistry.register()`
+   - `DELETE /api/skills/:skillId` - 调用 `SkillRegistry.unregister()`
+
+#### 步骤 5.3：实现 SSE 实时推送
+
+**目标**：基于现有的 `EventBus` 实现 SSE 实时推送。
+
+**背景**：基础设施层已实现 `EventBus`（`src/infrastructure/events/EventBus.ts`），支持命名空间、优先级、去重等特性。
 
 **具体步骤**：
 
-1. **创建 `src/api/routes/sse.ts`**
-   - SSE 端点
-   - 连接建立
-   - 事件推送
+1. **创建 `src/api/controllers/SSEController.ts`**
+   - 管理活跃的 SSE 连接（`Map<string, SSEConnection>`）
+   - 实现 `subscribe(userId, sessionId)` 方法，建立连接并返回 `EventTarget`
+   - 实现 `unsubscribe(connectionId)` 方法，关闭连接并清理资源
+   - 实现 `broadcast(event)` 方法，向所有连接推送事件
+   - 实现 `sendToUser(userId, event)` 方法，向指定用户推送事件
+   - 实现 `sendToSession(sessionId, event)` 方法，向指定会话推送事件
+   - 实现心跳机制，基于 `SSE_CONFIG.HEARTBEAT_INTERVAL`（30000ms）
 
-2. **创建 `src/api/controllers/SSEController.ts`**
-   - 连接管理
-   - 订阅管理
-   - 心跳机制
+2. **创建 `src/api/routes/sse.ts`**
+   - `GET /api/sse` - SSE 端点，建立 SSE 连接
+   - 从 query 参数获取 `userId` 和 `sessionId`
+   - 调用 `SSEController.subscribe()` 建立连接
+   - 监听 `EventBus` 的事件（使用 `EventBus.on()`）
+   - 将事件转换为 SSE 格式并推送到客户端
+   - 处理连接断开，自动调用 `SSEController.unsubscribe()`
 
-3. **创建 `src/api/middleware/sse-auth.ts`**
-   - SSE 认证
-   - 用户身份验证
+3. **集成事件总线监听**
+   - 监听 `EventType.MODEL_STREAM_START`、`EventType.MODEL_STREAM_CHUNK`、`EventType.MODEL_STREAM_END`
+   - 监听 `EventType.MESSAGE_CREATED`、`EventType.MESSAGE_UPDATED`
+   - 监听 `EventType.TASK_CREATED`、`EventType.TASK_UPDATED`、`EventType.TASK_COMPLETED`、`EventType.TASK_FAILED`
+   - 监听 `EventType.AGENT_CREATED`、`EventType.AGENT_UPDATED`、`EventType.AGENT_STATE_CHANGED`
+   - 监听 `EventType.PUSH_NOTIFICATION`、`EventType.TOPIC_SUGGESTION`
+   - 监听 `EventType.ERROR`、`EventType.WARNING`、`EventType.INFO`
 
-4. **实现事件推送逻辑**
-   - 监听事件总线
-   - 推送到对应客户端
-   - 处理连接断开
+4. **实现连接管理**
+   - 使用 `SSE_CONFIG.MAX_CONNECTIONS_PER_USER`（5）限制每个用户的最大连接数
+   - 使用 `SSE_CONFIG.CONNECTION_TIMEOUT`（60000ms）检测超时连接
+   - 实现 `SSE_CONFIG.RECONNECT_DELAY`（5000ms）的自动重连机制
+   - 维护连接统计信息（活跃连接数、消息推送数等）
+
+5. **更新 `src/index.ts`**
+   - 导入 `SSEController` 和 SSE 路由
+   - 注册 SSE 路由到主应用
+   - 在优雅关闭时清理所有 SSE 连接
 
 ---
 
@@ -855,39 +924,105 @@ mkdir -p tests/{unit,integration,e2e}
 
 #### 步骤 6.1：话题收集实现
 
-**目标**：实现热门话题收集。
+**目标**：扩展现有的 `PushService` 实现热门话题收集。
+
+**背景**：应用层已实现 `PushService`（`src/application/services/PushService.ts`），支持话题管理和推送，但缺少外部数据源集成。
 
 **具体步骤**：
 
-1. **创建 `src/application/services/TopicCollector.ts`**
-   - 热搜数据抓取
-   - 数据源配置
-   - 数据清洗
+1. **创建 `src/infrastructure/sources/TopicSourceAdapter.ts`**
+   - 定义话题源适配器接口
+   - 实现数据抓取、解析、标准化
+   - 支持重试机制（使用 `src/shared/utils/retry.ts`）
+   - 实现错误处理（使用 `src/shared/utils/errorHandler.ts`）
 
-2. **实现数据源适配器**
-   - 微博热搜
-   - 知乎热榜
-   - 其他数据源
+2. **实现具体数据源适配器**
+   - `WeiboHotSearchAdapter.ts` - 微博热搜
+   - `ZhihuHotListAdapter.ts` - 知乎热榜
+   - `ToutiaoHotNewsAdapter.ts` - 今日头条热点
+   - 使用 `src/shared/utils/logger.ts` 记录抓取日志
+
+3. **创建 `src/application/services/TopicCollector.ts`**
+   - 管理多个话题源适配器
+   - 定时抓取各平台热搜数据
+   - 数据清洗和去重
+   - 计算话题相关性分数（基于 `TOPIC_COLLECTION_CONFIG.MIN_SCORE_THRESHOLD`）
+   - 调用 `PushService.addTopic()` 添加到话题池
+
+4. **集成到定时任务**
+   - 在 `DataSyncScheduler` 中添加话题收集任务
+   - 配置抓取频率（建议每小时一次）
+   - 使用 `CacheManager` 缓存抓取结果
 
 #### 步骤 6.2：内容生成实现
 
-**目标**：实现多平台内容生成。
+**目标**：扩展现有的 `ContentGenerationService` 实现多平台内容生成。
+
+**背景**：应用层已实现 `ContentGenerationService`（`src/application/services/ContentGenerationService.ts`），支持微信、钉钉、飞书、邮件、Web 五个平台，但缺少今日头条、微博、小红书等平台的适配。
 
 **具体步骤**：
 
-1. **创建 `src/application/services/ContentGenerator.ts`**
-   - 内容生成逻辑
-   - 品味适配
+1. **扩展平台配置**
+   - 在 `src/shared/constants/index.ts` 的 `PLATFORM_CONFIG` 中添加：
+     - 今日头条（TOUTIAO）：maxCharacters、supportedFormats、tags
+     - 微博（WEIBO）：maxCharacters、supportedFormats、tags
+     - 小红书（XIAOHONGSHU）：maxCharacters、supportedFormats、tags
 
 2. **创建平台适配器**
-   - 今日头条适配器
-   - 微信公众号适配器
-   - 微博适配器
-   - 小红书适配器
+   - `src/infrastructure/platforms/ToutiaoAdapter.ts` - 今日头条适配器
+   - `src/infrastructure/platforms/WeiboAdapter.ts` - 微博适配器
+   - `src/infrastructure/platforms/XiaohongshuAdapter.ts` - 小红书适配器
+   - 实现平台特定的内容格式化、标签处理、长度限制
 
-3. **创建 `src/core/skill/PlatformPublishSkill.ts`**
-   - 发布技能
-   - 格式转换
+3. **扩展 `ContentGenerationService`**
+   - 集成新的平台适配器
+   - 实现 `generateContentForPlatform(platform, format, config)` 方法
+   - 支持品味适配（调用 `PreferenceManager` 获取用户偏好）
+   - 使用 `ToolCallWorkflow` 实现并行的内容生成
+
+4. **创建 `src/core/skill/PlatformPublishSkill.ts`**
+   - 继承 `BaseSkill`
+   - 实现平台发布逻辑
+   - 支持格式转换（Markdown → 纯文本 → HTML）
+   - 集成到 `SkillRegistry`
+
+5. **优化 `ContentCreationWorkflow`**
+   - 支持批量内容生成
+   - 实现平台适配流程
+   - 使用 `TaskExecutor` 实现并行生成
+   - 维护创建历史记录
+
+#### 步骤 6.3：推送工作流优化
+
+**目标**：优化现有的 `PushWorkflow` 实现完整的推送流程。
+
+**背景**：应用层已实现 `PushWorkflow`（`src/application/workflows/PushWorkflow.ts`），包含话题生成、筛选、推送三个阶段。
+
+**具体步骤**：
+
+1. **扩展话题生成**
+   - 集成 `TopicCollector` 的外部数据源
+   - 支持基于 AI 和规则两种生成方式
+   - 使用 `PreferenceAnalyzer` 分析用户偏好
+   - 实现话题相关性计算
+
+2. **优化话题筛选**
+   - 扩展过滤器类型（category、tag、keyword、relevance、custom）
+   - 支持多条件组合筛选
+   - 使用 `CacheManager` 缓存筛选结果
+   - 实现个性化推荐算法
+
+3. **优化推送逻辑**
+   - 集成 `ContentGenerationService` 生成推送内容
+   - 支持多平台批量推送
+   - 使用 `PushScheduler` 实现定时推送
+   - 维护推送历史记录
+
+4. **集成到定时任务**
+   - 在 `PushScheduler` 中配置早中晚三个推送时段
+   - 使用 `node-cron` 实现定时调度
+   - 支持手动触发推送
+   - 实现推送去重机制
 
 ---
 
@@ -895,45 +1030,72 @@ mkdir -p tests/{unit,integration,e2e}
 
 #### 步骤 7.1：性能优化实现
 
-**目标**：优化系统性能。
+**目标**：基于现有架构优化系统性能。
+
+**背景**：项目已实现 `TaskExecutor`（支持并行执行）、`ToolCallWorkflow`（支持并行工具调用）、`CacheManager`（两级缓存）、`GitHubStorage`（写入队列）、`retry.ts`（重试机制）。
 
 **具体步骤**：
 
-1. **实现并发控制**
-   - Agent 并行执行
-   - 工具调用并行化
-   - 连接池管理
+1. **并发控制优化**
+   - **Agent 并行执行**：`MainAgent.coordinateTasks()` 已支持并发，优化 `maxConcurrentTasks` 配置（默认 3）
+   - **工具调用并行化**：`ToolCallWorkflow.executeParallelToolCalls()` 已实现，优化 `batchSize` 和 `maxConcurrentCalls`（基于 `TOOL_CALL_CONFIG.MAX_PARALLEL_CALLS = 5`）
+   - **任务执行并行化**：`TaskExecutor.executeParallel()` 已实现，优化 `maxParallelTasks` 配置（默认 10）
+   - **连接池管理**：为 GitHub API 和 LLM API 实现连接池，复用 HTTP 连接
 
-2. **实现资源管理**
-   - 内存限制
-   - 定期清理
-   - 请求限流
+2. **资源管理优化**
+   - **内存限制**：使用 `CacheManager` 的 `maxSize` 和 `TTL` 限制内存占用
+   - **定期清理**：在 `DataSyncScheduler` 中添加清理任务（每周日凌晨 3 点）
+   - **请求限流**：使用 `node-rate-limiter` 实现 API 请求限流
+   - **Session 清理**：`SessionManager.archiveExpiredSessions()` 自动归档过期会话（`autoArchiveDays = 30`）
 
-3. **优化缓存策略**
-   - 模型响应缓存
-   - 用户偏好缓存
-   - 热门话题缓存
+3. **缓存策略优化**
+   - **模型响应缓存**：使用 `CacheManager` 缓存 LLM 响应，基于 `ChatParams` 生成缓存键
+   - **用户偏好缓存**：`PreferenceManager` 已实现 LRU 缓存（`maxCacheSize = 100`），优化缓存命中率
+   - **热门话题缓存**：使用 `CacheManager` 缓存话题数据，设置合理的 TTL
+   - **Session 消息缓存**：缓存会话消息列表，减少 GitHub 存储读取
+
+4. **性能监控**
+   - 使用 `Logger` 记录关键操作的性能指标（执行时间、缓存命中率等）
+   - 实现性能统计接口（`/api/stats/performance`）
+   - 集成 APM 工具（如 New Relic、Datadog）进行性能分析
 
 #### 步骤 7.2：边界情况处理
 
-**目标**：处理各种异常情况。
+**目标**：基于现有机制处理各种异常情况。
+
+**背景**：项目已实现 `ErrorHandler`、`retry.ts`、`AppError` 及其子类、`GitHubStorage` 重试机制、`OpenAICompatibleProvider` 重试机制。
 
 **具体步骤**：
 
 1. **网络异常处理**
-   - GitHub API 重试
-   - 大模型 API 降级
-   - SSE 自动重连
+   - **GitHub API 重试**：`GitHubStorage` 已实现重试机制（`maxRetries = 3`，`retryDelay = 1000ms`），优化重试策略
+   - **大模型 API 重试**：`OpenAICompatibleProvider` 已实现重试机制，使用 `retryAsync()` 实现指数退避
+   - **大模型 API 降级**：实现多 Provider 切换（DeepSeek → Kimi → Qwen → GLM）
+   - **SSE 自动重连**：`SSEController` 已实现心跳机制和超时检测，实现客户端自动重连（`RECONNECT_DELAY = 5000ms`）
 
 2. **数据一致性处理**
-   - 并发写入冲突
-   - 版本控制
-   - 数据校验
+   - **并发写入冲突**：`GitHubStorage` 已实现写入队列（`writeQueue: Map<string, Promise<void>>`），防止并发冲突
+   - **版本控制**：使用 GitHub 的 commit SHA 实现版本控制，`getFileInfo()` 获取文件 SHA
+   - **数据校验**：`GitHubStorage` 已集成 Zod Schema 验证，`DataSerializer.validate()` 进行数据校验
+   - **乐观锁**：在更新数据时检查版本号，避免覆盖并发修改
 
 3. **资源限制处理**
-   - API 速率限制
-   - 内存限制
-   - 连接数限制
+   - **GitHub API 速率限制**：实现请求队列和优先级调度，使用 `Octokit` 的速率限制检测
+   - **LLM API 速率限制**：实现请求限流和队列管理，使用 `retryAsync()` 处理 429 错误
+   - **内存限制**：`CacheManager` 已实现容量限制，`MemoryCache` 使用 LRU 策略
+   - **连接数限制**：`SSEController` 已实现 `MAX_CONNECTIONS_PER_USER`（5），防止连接数过多
+
+4. **错误处理优化**
+   - **统一错误响应**：`ErrorHandler` 已实现标准化错误处理，返回 `AppError` 格式
+   - **错误分类**：`AppError` 及其子类（`StorageError`、`LLMError`、`CacheError`、`TaskError`、`AgentError`）进行错误分类
+   - **错误日志**：使用 `Logger.error()` 记录错误详情，包含上下文信息
+   - **错误告警**：实现关键错误的告警机制（如邮件、钉钉通知）
+
+5. **优雅降级**
+   - **GitHub 存储降级**：当 GitHub API 不可用时，切换到本地文件存储
+   - **LLM 降级**：当所有 Provider 都不可用时，返回缓存响应或默认响应
+   - **SSE 降级**：当 SSE 连接失败时，降级为轮询机制
+   - **功能降级**：当非核心功能失败时，保证核心功能正常运行
 
 ---
 
@@ -941,45 +1103,104 @@ mkdir -p tests/{unit,integration,e2e}
 
 #### 步骤 8.1：测试实现
 
-**目标**：编写完整的测试用例。
+**目标**：基于现有的测试框架编写完整的测试用例。
+
+**背景**：项目已配置 `vitest` 测试框架（`package.json`），`tests/unit/` 目录已创建。
 
 **具体步骤**：
 
-1. **单元测试**
-   - 领域模型测试
-   - 服务层测试
-   - 工具函数测试
+1. **单元测试（`tests/unit/`）**
+   - **领域模型测试**
+     - `agent.test.ts` - 测试 `BaseAgent`、`MainAgent`、`SubAgent`、`AgentFactory`
+     - `session.test.ts` - 测试 `Session`、`SessionManager`
+     - `message.test.ts` - 测试 `Message`、`MessageBuilder`
+     - `task.test.ts` - 测试 `Task`、`TaskManager`、`TaskExecutor`
+     - `skill.test.ts` - 测试 `BaseSkill`、`SkillRegistry`
+     - `preference.test.ts` - 测试 `Preference`、`PreferenceManager`、`PreferenceAnalyzer`
+   - **基础设施层测试**
+     - `eventBus.test.ts` - 测试 `EventBus` 的事件订阅、发布、去重
+     - `cache.test.ts` - 测试 `MemoryCache`、`FileCache`、`CacheManager`
+     - `llm.test.ts` - 测试 `BaseProvider`、各具体 Provider（使用 Mock）
+     - `githubStorage.test.ts` - 测试 `GitHubStorage`（使用 Mock Octokit）
+   - **工具函数测试**
+     - `retry.test.ts` - 测试 `retryAsync()`、`retrySync()`
+     - `validator.test.ts` - 测试各种验证函数
+     - `errorHandler.test.ts` - 测试 `ErrorHandler` 和错误类
+     - `logger.test.ts` - 测试 `Logger` 的日志记录
 
-2. **集成测试**
-   - API 测试
-   - 工作流测试
-   - 存储层测试
+2. **集成测试（`tests/integration/`）**
+   - **服务层测试**
+     - `conversationService.test.ts` - 测试 `ConversationService` 的完整流程
+     - `taskService.test.ts` - 测试 `TaskService` 的任务管理
+     - `contentGenerationService.test.ts` - 测试 `ContentGenerationService` 的内容生成
+     - `pushService.test.ts` - 测试 `PushService` 的推送逻辑
+   - **工作流测试**
+     - `toolCallWorkflow.test.ts` - 测试 `ToolCallWorkflow` 的工具调用
+     - `contentCreationWorkflow.test.ts` - 测试 `ContentCreationWorkflow` 的内容创建
+     - `pushWorkflow.test.ts` - 测试 `PushWorkflow` 的推送流程
+   - **存储层测试**
+     - `githubStorage.test.ts` - 测试 `GitHubStorage` 的 CRUD 操作（使用真实 GitHub API 或 Mock）
+     - `cacheManager.test.ts` - 测试 `CacheManager` 的两级缓存
 
-3. **端到端测试**
-   - 完整流程测试
-   - 性能测试
+3. **API 测试（`tests/api/`）**
+   - `conversation.test.ts` - 测试对话 API 端点
+   - `task.test.ts` - 测试任务 API 端点
+   - `content.test.ts` - 测试内容生成 API 端点
+   - `push.test.ts` - 测试推送 API 端点
+   - `preference.test.ts` - 测试偏好 API 端点
+   - `agent.test.ts` - 测试 Agent API 端点
+   - `sse.test.ts` - 测试 SSE 连接和事件推送
+
+4. **端到端测试（`tests/e2e/`）**
+   - `conversationFlow.test.ts` - 测试完整的对话流程（创建会话、发送消息、获取历史）
+   - `taskFlow.test.ts` - 测试完整的任务流程（创建任务、执行任务、获取结果）
+   - `pushFlow.test.ts` - 测试完整的推送流程（话题收集、内容生成、推送）
+   - `performance.test.ts` - 性能测试（并发请求、响应时间、吞吐量）
+
+5. **测试配置**
+   - 配置 `vitest.config.ts` 的测试覆盖率阈值
+   - 配置测试环境变量（`.env.test`）
+   - 实现 Mock 工具（Mock GitHub API、Mock LLM API）
+   - 实现测试数据生成器
 
 #### 步骤 8.2：文档编写
 
-**目标**：编写项目文档。
+**目标**：编写完整的项目文档。
+
+**背景**：项目已有 `README.md`，需要扩展和完善文档。
 
 **具体步骤**：
 
-1. **API 文档**
-   - 接口说明
-   - 请求/响应示例
+1. **API 文档（`docs/api/`）**
+   - 使用 OpenAPI/Swagger 规范编写 API 文档
+   - 提供接口说明、请求参数、响应示例
+   - 包含认证方式、错误码说明
+   - 生成在线 API 文档（使用 Swagger UI）
 
-2. **架构文档**
-   - 系统架构图
-   - 模块说明
+2. **架构文档（`docs/architecture/`）**
+   - **系统架构图** - 绘制整体架构图（使用 Mermaid 或 Draw.io）
+   - **模块说明** - 详细说明各个模块的职责和交互
+   - **领域模型** - 说明领域模型的设计和关系
+   - **数据流图** - 说明数据在各层之间的流转
+   - **事件流图** - 说明事件的发布和订阅机制
 
-3. **部署文档**
-   - 环境配置
-   - 部署步骤
+3. **部署文档（`docs/deployment/`）**
+   - **环境配置** - 详细说明环境变量配置（`.env.example`）
+   - **本地开发** - 本地开发环境搭建步骤
+   - **生产部署** - 生产环境部署步骤（Docker、Kubernetes）
+   - **监控配置** - 日志收集、指标监控、告警配置
 
-4. **使用文档**
-   - 快速开始
-   - 功能说明
+4. **使用文档（`docs/usage/`）**
+   - **快速开始** - 5 分钟快速上手指南
+   - **功能说明** - 详细说明各个功能的使用方法
+   - **最佳实践** - 推荐的使用方式和配置
+   - **常见问题** - FAQ 和故障排查
+
+5. **开发文档（`docs/development/`）**
+   - **开发指南** - 开发规范、代码风格、提交规范
+   - **贡献指南** - 如何贡献代码、PR 流程
+   - **测试指南** - 如何编写和运行测试
+   - **调试指南** - 如何调试和排查问题
 
 ---
 
@@ -987,39 +1208,73 @@ mkdir -p tests/{unit,integration,e2e}
 
 #### 步骤 9.1：部署配置
 
-**目标**：配置生产环境部署。
+**目标**：基于现有配置实现生产环境部署。
+
+**背景**：项目已配置 `src/shared/config/`（使用 Zod Schema）、`package.json`（脚本命令）、`.env.example`（环境变量模板）。
 
 **具体步骤**：
 
 1. **Docker 化**
-   - 创建 Dockerfile
-   - 配置 docker-compose
+   - 创建 `Dockerfile` - 基于 Node.js 20+ 镜像，使用 pnpm 安装依赖
+   - 创建 `.dockerignore` - 排除不必要的文件（node_modules、.git、tests 等）
+   - 创建 `docker-compose.yml` - 配置应用服务、数据库（如需）、监控服务
+   - 配置多阶段构建，优化镜像大小
+   - 使用健康检查确保容器健康
 
 2. **环境配置**
-   - 生产环境变量
-   - 配置管理
+   - 完善 `.env.example` - 添加所有必需的环境变量（`REQUIRED_ENV_VARS`）
+   - 创建 `src/shared/config/production.ts` - 生产环境特定配置
+   - 配置环境变量验证（`envValidator.validateEnvironment()`）
+   - 实现配置热更新（`reloadConfig()`）
+   - 使用 Secrets 管理工具（如 HashiCorp Vault、AWS Secrets Manager）
 
 3. **监控配置**
-   - 日志收集
-   - 指标监控
+   - **日志收集** - 集成 ELK Stack（Elasticsearch、Logstash、Kibana）或 Loki
+   - **指标监控** - 集成 Prometheus + Grafana，暴露 `/metrics` 端点
+   - **分布式追踪** - 集成 Jaeger 或 Zipkin
+   - **告警配置** - 配置告警规则（AlertManager、钉钉、邮件）
+   - **性能监控** - 集成 APM 工具（New Relic、Datadog）
 
 #### 步骤 9.2：运维工具
 
-**目标**：实现运维支持工具。
+**目标**：基于现有机制实现运维支持工具。
+
+**背景**：项目已实现 `Logger`（结构化日志）、`ErrorHandler`（错误处理）、`src/index.ts`（健康检查端点）。
 
 **具体步骤**：
 
 1. **健康检查**
-   - 健康检查端点
-   - 服务状态监控
+   - 扩展 `/health` 端点 - 返回详细的服务状态（数据库、缓存、外部 API）
+   - 实现 `/health/ready` - 就绪检查（依赖服务是否就绪）
+   - 实现 `/health/live` - 存活检查（服务是否存活）
+   - 实现健康检查指标（响应时间、成功率等）
+   - 集成到 Kubernetes 的 liveness 和 readiness probes
 
 2. **数据备份**
-   - 自动备份
-   - 恢复机制
+   - **GitHub 数据备份** - 定期备份 GitHub 仓库的数据（使用 GitHub API）
+   - **缓存备份** - 定期备份 `FileCache` 的数据到云存储（如 S3、OSS）
+   - **配置备份** - 备份环境变量和配置文件
+   - **自动备份** - 在 `DataSyncScheduler` 中添加备份任务（每天凌晨 1 点）
+   - **恢复机制** - 实现数据恢复脚本和流程
 
 3. **日志管理**
-   - 结构化日志
-   - 日志查询
+   - **结构化日志** - `Logger` 已实现结构化日志，确保所有日志包含上下文
+   - **日志分级** - 使用 `LogLevel`（ERROR、WARN、INFO、DEBUG）合理分级
+   - **日志轮转** - 配置日志轮转（基于 `LOG_CONFIG.MAX_LOG_SIZE` 和 `LOG_CONFIG.LOG_RETENTION_DAYS`）
+   - **日志查询** - 集成日志查询工具（如 Loki、Elasticsearch）
+   - **日志分析** - 实现日志分析脚本，提取关键指标
+
+4. **运维脚本**
+   - `scripts/deploy.sh` - 自动化部署脚本
+   - `scripts/backup.sh` - 数据备份脚本
+   - `scripts/restore.sh` - 数据恢复脚本
+   - `scripts/health-check.sh` - 健康检查脚本
+   - `scripts/cleanup.sh` - 资源清理脚本
+
+5. **监控面板**
+   - 创建 Grafana 仪表板，展示关键指标
+   - 监控指标包括：QPS、响应时间、错误率、缓存命中率、活跃连接数
+   - 配置告警规则，异常时自动通知
 
 ---
 
