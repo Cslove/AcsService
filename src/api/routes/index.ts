@@ -5,6 +5,12 @@
 
 import { Hono } from "hono";
 import { logger } from "@/shared/utils/logger.js";
+import conversationRoutes from "./conversation.js";
+import taskRoutes from "./task.js";
+import contentRoutes from "./content.js";
+import pushRoutes from "./push.js";
+import preferenceRoutes from "./preference.js";
+import agentRoutes from "./agent.js";
 
 const apiRoutes = new Hono();
 
@@ -32,20 +38,13 @@ apiRoutes.get("/health", (c) => {
   });
 });
 
-// TODO: 在后续步骤中集成具体的路由模块
-// import conversationRoutes from "./conversation.js";
-// import taskRoutes from "./task.js";
-// import contentRoutes from "./content.js";
-// import pushRoutes from "./push.js";
-// import preferenceRoutes from "./preference.js";
-// import agentRoutes from "./agent.js";
-//
-// apiRoutes.route("/conversations", conversationRoutes);
-// apiRoutes.route("/tasks", taskRoutes);
-// apiRoutes.route("/content", contentRoutes);
-// apiRoutes.route("/push", pushRoutes);
-// apiRoutes.route("/preferences", preferenceRoutes);
-// apiRoutes.route("/agents", agentRoutes);
+// 集成具体的路由模块
+apiRoutes.route("/conversations", conversationRoutes);
+apiRoutes.route("/tasks", taskRoutes);
+apiRoutes.route("/content", contentRoutes);
+apiRoutes.route("/push", pushRoutes);
+apiRoutes.route("/preferences", preferenceRoutes);
+apiRoutes.route("/agents", agentRoutes);
 
 logger.info("API routes initialized");
 
