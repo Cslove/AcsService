@@ -12,6 +12,9 @@ import { logger } from "@/shared/utils/logger.js";
 import { initEnvironment } from "@/shared/config/envValidator.js";
 import { getConfig } from "@/shared/config/index.js";
 import { ErrorHandler } from "@/shared/utils/errorHandler.js";
+import apiRoutes from "@/api/routes/index.js";
+import { requestLogger, errorLogger } from "@/api/middleware/logger.js";
+import { errorHandler, notFoundHandler } from "@/api/middleware/errorHandler.js";
 function initializeApp(): void {
   try {
     initEnvironment();
@@ -34,6 +37,9 @@ function createApp(): Hono {
   // 添加中间件
   app.use("*", cors());
   app.use("*", honoLogger());
+  app.use("*", errorLogger);
+  app.use("*", requestLogger);
+  app.use("*", errorHandler);
 
   // 健康检查端点
   app.get("/health", (c) => {
@@ -54,9 +60,14 @@ function createApp(): Hono {
     });
   });
 
-  // API 路由（将在后续阶段实现）
-  // app.route("/api", apiRoutes);
+  // API 路由
+  app.route("/api", apiRoutes);
+
+  // SSE 路由（将在后续阶段实现）
   // app.route("/sse", sseRoutes);
+
+  // 404 处理
+  app.notFound(notFoundHandler);
 
   return app;
 }

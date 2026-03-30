@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   PushWorkflow,
-  TopicGenerationConfig,
-  TopicFilterConfig,
-  PushWorkflowResult,
+  type TopicGenerationConfig,
+  type TopicFilterConfig,
 } from "@/application/workflows/PushWorkflow.js";
 
 describe("PushWorkflow", () => {

@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   ContentCreationWorkflow,
-  ContentCreationConfig,
-  ContentCreationResult,
+  type ContentCreationConfig,
 } from "@/application/workflows/ContentCreationWorkflow.js";
 import { PlatformType, ContentType } from "@/application/services/ContentGenerationService.js";
 
