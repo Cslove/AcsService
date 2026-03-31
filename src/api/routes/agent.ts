@@ -271,36 +271,6 @@ agentRoutes.delete("/:agentName", async (c) => {
   }
 });
 
-// GET /api/skills - 获取所有技能（必须在 /:agentName 之前定义）
-agentRoutes.get("/skills", async (c) => {
-  try {
-    const skills = skillRegistry.getAll();
-
-    return c.json({
-      success: true,
-      data: skills.map((skill) => ({
-        id: skill.getId(),
-        name: skill.getName(),
-        description: skill.getDescription(),
-        type: skill.getType(),
-      })),
-      count: skills.length,
-    });
-  } catch (error) {
-    logger.error("Error getting skills", error);
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: ErrorCode.INTERNAL_ERROR,
-          message: "Internal server error",
-        },
-      },
-      500,
-    );
-  }
-});
-
 // GET /api/skills/:skillId - 获取指定技能
 agentRoutes.get("/skills/:skillId", async (c) => {
   try {
