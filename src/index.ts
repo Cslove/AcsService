@@ -13,6 +13,8 @@ import { initEnvironment } from "@/shared/config/envValidator.js";
 import { getConfig } from "@/shared/config/index.js";
 import { ErrorHandler } from "@/shared/utils/errorHandler.js";
 import apiRoutes from "@/api/routes/index.js";
+import sseRoutes from "@/api/routes/sse.js";
+import { sseController } from "@/api/controllers/SSEController.js";
 import { requestLogger, errorLogger } from "@/api/middleware/logger.js";
 import { errorHandler, notFoundHandler } from "@/api/middleware/errorHandler.js";
 function initializeApp(): void {
@@ -63,8 +65,8 @@ function createApp(): Hono {
   // API 路由
   app.route("/api", apiRoutes);
 
-  // SSE 路由（将在后续阶段实现）
-  // app.route("/sse", sseRoutes);
+  // SSE 路由
+  app.route("/api/sse", sseRoutes);
 
   // 404 处理
   app.notFound(notFoundHandler);
@@ -85,8 +87,8 @@ function setupGracefulShutdown(server: any): void {
 
       logger.info("Server closed successfully");
 
-      // 清理资源（将在后续阶段实现）
-      // await cleanupResources();
+      // 清理 SSE 连接资源
+      sseController.closeAll();
 
       logger.info("Application shutdown complete");
       process.exit(0);
