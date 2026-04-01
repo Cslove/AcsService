@@ -4,7 +4,7 @@
  */
 
 import "dotenv/config";
-import { serve } from "@hono/node-server";
+import { serve, type ServerType } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
 import { cors } from "hono/cors";
@@ -74,16 +74,27 @@ function createApp(): Hono {
   return app;
 }
 
-function setupGracefulShutdown(server: any): void {
+function setupGracefulShutdown(server: ServerType): void {
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down gracefully...`);
 
-    // 停止接受新连接
-    server.close(async (err: any) => {
-      if (err) {
-        logger.error("Error closing server", err);
-        process.exit(1);
-      }
+    // 设置强制关闭超时
+    const forceShutdown = setTimeout(() => {
+      logger.error("Forced shutdown after timeout");
+      process.exit(1);
+    }, 30000);
+
+    try {
+      // 停止接受新连接并等待现有连接关闭
+      await new Promise<void>((resolve, reject) => {
+        server.close((err: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
 
       logger.info("Server closed successfully");
 
@@ -92,13 +103,12 @@ function setupGracefulShutdown(server: any): void {
 
       logger.info("Application shutdown complete");
       process.exit(0);
-    });
-
-    // 强制关闭超时
-    setTimeout(() => {
-      logger.error("Forced shutdown after timeout");
+    } catch (error) {
+      logger.error("Error closing server", error);
       process.exit(1);
-    }, 30000);
+    } finally {
+      clearTimeout(forceShutdown);
+    }
   };
 
   process.on("SIGTERM", () => shutdown("SIGTERM"));
