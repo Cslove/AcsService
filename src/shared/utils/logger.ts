@@ -137,7 +137,7 @@ export class Logger {
       ? ` ${COLORS.cyan}${JSON.stringify(entry.context)}${COLORS.reset}`
       : "";
     const stackStr = entry.context?.error?.stack
-      ? `\n${COLORS.gray}${entry.context.error.stack}${COLORS.reset}`
+      ? `\n${COLORS.red}${entry.context.error.stack}${COLORS.reset}`
       : "";
     const logMessage = `${COLORS.gray}[${timestamp}]${COLORS.reset} ${levelColor}[${level}]${COLORS.reset} ${entry.message}${contextStr}${stackStr}`;
 
