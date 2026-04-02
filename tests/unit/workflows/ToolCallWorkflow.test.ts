@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   ToolCallWorkflow,
-  ToolCallConfig,
-  ToolCallResult,
+  type ToolCallConfig,
+  type ToolCallResult,
 } from "@/application/workflows/ToolCallWorkflow.js";
 
 describe("ToolCallWorkflow", () => {

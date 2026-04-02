@@ -245,8 +245,8 @@ describe("DataSyncScheduler", () => {
 
       scheduler.startAllDefaultTasks();
 
-      expect(scheduler.getTaskCount()).toBe(3);
-      expect(scheduler.getEnabledTasks()).toHaveLength(3);
+      expect(scheduler.getTaskCount()).toBe(4);
+      expect(scheduler.getEnabledTasks()).toHaveLength(4);
     });
   });
 

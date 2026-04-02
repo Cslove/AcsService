@@ -15,6 +15,7 @@ export enum SyncTaskType {
   DATA_SYNC = "data_sync",
   CACHE_REFRESH = "cache_refresh",
   CLEANUP = "cleanup",
+  TOPIC_COLLECTION = "topic_collection",
 }
 
 /**
@@ -66,6 +67,13 @@ export class DataSyncScheduler {
       cronExpression: "0 * * * *", // 每小时执行一次
       enabled: true,
       description: "Hourly data synchronization",
+    },
+    {
+      id: "topic-collection-hourly",
+      type: SyncTaskType.TOPIC_COLLECTION,
+      cronExpression: "0 * * * *", // 每小时执行一次
+      enabled: true,
+      description: "Hourly topic collection from various sources",
     },
     {
       id: "cache-refresh-daily",
